@@ -20,6 +20,7 @@ from discord.ext.commands import Context
 from dotenv import load_dotenv
 
 from database import DatabaseManager
+from parsers.registry import discover_parsers
 
 load_dotenv()
 
@@ -170,9 +171,10 @@ class TrivialBot(commands.Bot):
     @tasks.loop(minutes=1.0)
     async def status_task(self) -> None:
         """
-        Setup the game status task of trivial.
+        Rotate the "playing …" presence through the names of the games
+        trivial can parse (skipping the example parser).
         """
-        statuses = ["with you!", "with trivial!", "with scores!"]
+        statuses = self.game_names or ["scores"]
         await self.change_presence(activity=discord.Game(random.choice(statuses)))
 
     @status_task.before_loop
@@ -195,6 +197,13 @@ class TrivialBot(commands.Bot):
         self.logger.info("-------------------")
         await self.init_db()
         await self.load_cogs()
+        # Game names for the rotating "playing …" presence, skipping the
+        # example parser. Cached once so parsers aren't re-discovered each tick.
+        self.game_names = [
+            parser.game
+            for parser in discover_parsers()
+            if not type(parser).__module__.endswith("example_parser")
+        ]
         # Register slash commands with Discord on startup (global scope).
         await self.tree.sync()
         self.status_task.start()
