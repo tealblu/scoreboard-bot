@@ -12,16 +12,16 @@ from parsers.base import _utc_today
 from parsers.registry import discover_parsers
 
 if TYPE_CHECKING:
-    from bot import DiscordBot
+    from bot import TrivialBot
     from discord.ext.commands import Context
 
-logger = logging.getLogger("discord_bot")
+logger = logging.getLogger("trivial")
 
 
 class Scoreboard(commands.Cog):
     """Listens for messages containing game scores and posts parsed results."""
 
-    def __init__(self, bot: DiscordBot) -> None:
+    def __init__(self, bot: TrivialBot) -> None:
         self.bot = bot
         self._tracked_channels: dict[int, int] = {}  # guild_id -> channel_id
 
@@ -69,12 +69,12 @@ class Scoreboard(commands.Cog):
 
     @commands.hybrid_group(
         name="scorechannel",
-        description="Manage the channel the bot monitors for scores.",
+        description="Manage the channel trivial monitors for scores.",
     )
     @commands.guild_only()
     async def scorechannel(self, context: Context) -> None:
         """
-        Manage the channel the bot monitors for scores.
+        Manage the channel trivial monitors for scores.
 
         :param context: The hybrid command context.
         """
@@ -87,7 +87,7 @@ class Scoreboard(commands.Cog):
 
     @scorechannel.command(
         name="set",
-        description="Set the channel the bot monitors for scores.",
+        description="Set the channel trivial monitors for scores.",
     )
     @commands.has_permissions(manage_channels=True)
     @app_commands.describe(channel="The channel to monitor for score messages.")
@@ -95,7 +95,7 @@ class Scoreboard(commands.Cog):
         self, context: Context, channel: discord.TextChannel
     ) -> None:
         """
-        Set the channel the bot monitors for scores.
+        Set the channel trivial monitors for scores.
 
         :param context: The hybrid command context.
         :param channel: The channel to monitor for score messages.
@@ -147,7 +147,7 @@ class Scoreboard(commands.Cog):
         else:
             channel = context.guild.get_channel(channel_id)
             embed = discord.Embed(
-                description=f"The bot monitors scores in {channel.mention if channel else channel_id}.",
+                description=f"Trivial monitors scores in {channel.mention if channel else channel_id}.",
                 color=0xBEBEFE,
             )
         await context.send(embed=embed, silent=True)
@@ -229,5 +229,5 @@ class Scoreboard(commands.Cog):
             )
 
 
-async def setup(bot: DiscordBot) -> None:
+async def setup(bot: TrivialBot) -> None:
     await bot.add_cog(Scoreboard(bot))

@@ -23,7 +23,7 @@ def _utc_today() -> str:
 class ScoreResponse:
     """Parsed data for ONE user for ONE game.
 
-    The message model this bot targets is:
+    The message model trivial targets is:
 
         many users x many games — one score per message.
 

@@ -16,7 +16,7 @@ import parsers as parsers_pkg
 
 from .base import ScoreParser
 
-logger = logging.getLogger("discord_bot")
+logger = logging.getLogger("trivial")
 
 
 def discover_parsers() -> list[ScoreParser]:

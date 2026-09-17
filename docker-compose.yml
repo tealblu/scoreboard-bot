@@ -1,5 +1,5 @@
 services:
-  discord-bot:
+  trivial:
     # Pull the published image from GHCR, or build locally with
     # `docker compose up -d --build` when GHCR_OWNER is unset.
     image: ghcr.io/${GHCR_OWNER:-your-github-user}/scoreboard-bot:latest

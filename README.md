@@ -1,27 +1,25 @@
-# Scoreboard Bot
+# Trivial
 
-A Discord bot that automatically tracks game scores from chat messages. When a
-user posts a score (e.g. a Wordle result), the bot parses it, stores it in
-SQLite, and replies with a formatted embed. A `!scores` command retrieves
-leaderboards filtered by game and date.
+**trivial** is a Discord bot that automatically tracks game scores from chat
+messages. When a user posts a score (e.g. a Wordle result), trivial parses it,
+stores it in SQLite, and replies with a formatted embed. A `!scores` command
+retrieves leaderboards filtered by game and date.
 
 Parsers are auto-discovered from the `parsers/` directory — adding support for
 a new game is as simple as dropping in a new file that subclasses `ScoreParser`.
 
 ## How to set up
 
-1. Copy `.env.example` to `.env` and fill in your bot token, prefix, and
-   invite link:
+1. Copy `.env.example` to `.env` and fill in your bot token and prefix:
    ```
    TOKEN=your-bot-token
    PREFIX=!
-   INVITE_LINK=https://discord.com/oauth2/authorize?client_id=YOUR_ID&scope=bot+applications.commands
    ```
 2. Install dependencies:
    ```
    python -m pip install -r requirements.txt
    ```
-3. Run the bot:
+3. Run trivial:
    ```
    python bot.py
    ```
@@ -40,7 +38,7 @@ On a server with Docker:
 GHCR_OWNER=your-github-user docker compose up -d
 ```
 
-Make sure `.env` exists with at least `TOKEN`, `PREFIX`, and `INVITE_LINK`.
+Make sure `.env` exists with at least `TOKEN` and `PREFIX`.
 
 ## Commands
 
@@ -53,7 +51,7 @@ Make sure `.env` exists with at least `TOKEN`, `PREFIX`, and `INVITE_LINK`.
 ## Local testing
 
 You can exercise the full parsing and score-recording pipeline without
-deploying the bot:
+deploying trivial:
 
 ```
 # Single message

@@ -4,7 +4,7 @@ This module owns ``build_scoreboard_embed`` — the **single** function that
 both the ``!scores`` command and the local tester call to turn a list of
 :class:`ScoreRecord` rows into a Discord embed.
 
-The bot sends that embed to the channel; the local tester renders the same
+trivial sends that embed to the channel; the local tester renders the same
 embed as terminal text via ``render_embed``.  Two views, one data shape.
 """
 

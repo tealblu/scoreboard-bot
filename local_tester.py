@@ -2,7 +2,7 @@
 """
 Lightweight local testing framework for scoreboard parsers.
 
-Run parsers against text input without deploying the Discord bot, and
+Run parsers against text input without deploying trivial, and
 see exactly what would happen in production:
 
     1. select_parser  — decides which parser (game) handles the input
@@ -328,7 +328,7 @@ async def interactive_mode(
     db: DatabaseManager,
     verbose: bool,
 ) -> None:
-    """REPL — type messages, see what the bot would post and record."""
+    """REPL — type messages, see what trivial would post and record."""
     print()
     print("┌──────────────────────────────────────────────────────┐")
     print("│         Local Parser Tester  (interactive mode)      │")
@@ -369,7 +369,7 @@ async def interactive_mode(
 def build_cli() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(
         prog="local_tester",
-        description="Test scoreboard parsers locally without deploying the bot.",
+        description="Test scoreboard parsers locally without deploying trivial.",
     )
     ap.add_argument(
         "-p", "--prompt",

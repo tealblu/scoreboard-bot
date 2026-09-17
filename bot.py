@@ -108,7 +108,7 @@ class LoggingFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-logger = logging.getLogger("discord_bot")
+logger = logging.getLogger("trivial")
 logger.setLevel(logging.INFO)
 
 # Console handler
@@ -126,7 +126,7 @@ logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
 
-class DiscordBot(commands.Bot):
+class TrivialBot(commands.Bot):
     def __init__(self) -> None:
         super().__init__(
             command_prefix=commands.when_mentioned_or(os.getenv("PREFIX")),
@@ -144,7 +144,6 @@ class DiscordBot(commands.Bot):
         self.logger = logger
         self.database = None
         self.bot_prefix = os.getenv("PREFIX")
-        self.invite_link = os.getenv("INVITE_LINK")
 
     async def init_db(self) -> None:
         async with aiosqlite.connect(DATABASE_PATH) as db:
@@ -154,7 +153,7 @@ class DiscordBot(commands.Bot):
 
     async def load_cogs(self) -> None:
         """
-        The code in this function is executed whenever the bot will start.
+        The code in this function is executed whenever trivial will start.
         """
         for file in os.listdir(f"{os.path.realpath(os.path.dirname(__file__))}/cogs"):
             if file.endswith(".py"):
@@ -171,21 +170,21 @@ class DiscordBot(commands.Bot):
     @tasks.loop(minutes=1.0)
     async def status_task(self) -> None:
         """
-        Setup the game status task of the bot.
+        Setup the game status task of trivial.
         """
-        statuses = ["with you!", "with Krypton!", "with humans!"]
+        statuses = ["with you!", "with trivial!", "with scores!"]
         await self.change_presence(activity=discord.Game(random.choice(statuses)))
 
     @status_task.before_loop
     async def before_status_task(self) -> None:
         """
-        Before starting the status changing task, we make sure the bot is ready
+        Before starting the status changing task, we make sure trivial is ready
         """
         await self.wait_until_ready()
 
     async def setup_hook(self) -> None:
         """
-        This will just be executed when the bot starts the first time.
+        This will just be executed when trivial starts the first time.
         """
         self.logger.info(f"Logged in as {self.user.name}")
         self.logger.info(f"discord.py API version: {discord.__version__}")
@@ -247,16 +246,16 @@ class DiscordBot(commands.Bot):
             await context.send(embed=embed, silent=True)
         elif isinstance(error, commands.NotOwner):
             embed = discord.Embed(
-                description="You are not the owner of the bot!", color=0xE02B2B
+                description="You are not the owner of trivial!", color=0xE02B2B
             )
             await context.send(embed=embed, silent=True)
             if context.guild:
                 self.logger.warning(
-                    f"{context.author} (ID: {context.author.id}) tried to execute an owner only command in the guild {context.guild.name} (ID: {context.guild.id}), but the user is not an owner of the bot."
+                    f"{context.author} (ID: {context.author.id}) tried to execute an owner only command in the guild {context.guild.name} (ID: {context.guild.id}), but the user is not an owner of trivial."
                 )
             else:
                 self.logger.warning(
-                    f"{context.author} (ID: {context.author.id}) tried to execute an owner only command in the bot's DMs, but the user is not an owner of the bot."
+                    f"{context.author} (ID: {context.author.id}) tried to execute an owner only command in trivial's DMs, but the user is not an owner of trivial."
                 )
         elif isinstance(error, commands.MissingPermissions):
             embed = discord.Embed(
@@ -286,5 +285,5 @@ class DiscordBot(commands.Bot):
             raise error
 
 
-bot = DiscordBot()
+bot = TrivialBot()
 bot.run(os.getenv("TOKEN"))

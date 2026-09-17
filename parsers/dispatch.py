@@ -1,7 +1,7 @@
 """Message → parser dispatch.
 
 The dispatcher owns the question "which parser handles this message?"
-It is used by the bot cog and by the local tester so both follow the
+It is used by the scoreboard cog and by the local tester so both follow the
 exact same decision logic.
 """
 
@@ -15,7 +15,7 @@ from .base import ScoreParser
 if TYPE_CHECKING:
     import discord
 
-logger = logging.getLogger("discord_bot")
+logger = logging.getLogger("trivial")
 
 
 async def select_parser(
