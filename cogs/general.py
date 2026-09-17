@@ -103,7 +103,7 @@ class General(commands.Cog, name="general"):
             embed.add_field(
                 name=i.capitalize(), value=f"```{help_text}```", inline=False
             )
-        await context.send(embed=embed)
+        await context.send(embed=embed, silent=True)
 
     @commands.hybrid_command(
         name="botinfo",
@@ -130,7 +130,7 @@ class General(commands.Cog, name="general"):
             inline=False,
         )
         embed.set_footer(text=f"Requested by {context.author}")
-        await context.send(embed=embed)
+        await context.send(embed=embed, silent=True)
 
     @commands.hybrid_command(
         name="serverinfo",
@@ -161,7 +161,7 @@ class General(commands.Cog, name="general"):
         )
         embed.add_field(name=f"Roles ({len(context.guild.roles)})", value=roles)
         embed.set_footer(text=f"Created at: {context.guild.created_at}")
-        await context.send(embed=embed)
+        await context.send(embed=embed, silent=True)
 
     @commands.hybrid_command(
         name="ping",
@@ -178,7 +178,7 @@ class General(commands.Cog, name="general"):
             description=f"The bot latency is {round(self.bot.latency * 1000)}ms.",
             color=0xBEBEFE,
         )
-        await context.send(embed=embed)
+        await context.send(embed=embed, silent=True)
 
     @commands.hybrid_command(
         name="invite",
@@ -196,9 +196,9 @@ class General(commands.Cog, name="general"):
         )
         try:
             await context.author.send(embed=embed)
-            await context.send("I sent you a private message!")
+            await context.send("I sent you a private message!", silent=True)
         except discord.Forbidden:
-            await context.send(embed=embed)
+            await context.send(embed=embed, silent=True)
 
     @commands.hybrid_command(
         name="server",
@@ -216,9 +216,9 @@ class General(commands.Cog, name="general"):
         )
         try:
             await context.author.send(embed=embed)
-            await context.send("I sent you a private message!")
+            await context.send("I sent you a private message!", silent=True)
         except discord.Forbidden:
-            await context.send(embed=embed)
+            await context.send(embed=embed, silent=True)
 
     @commands.hybrid_command(
         name="8ball",
@@ -260,7 +260,7 @@ class General(commands.Cog, name="general"):
             color=0xBEBEFE,
         )
         embed.set_footer(text=f"The question was: {question}")
-        await context.send(embed=embed)
+        await context.send(embed=embed, silent=True)
 
     @commands.hybrid_command(
         name="bitcoin",
@@ -290,7 +290,7 @@ class General(commands.Cog, name="general"):
                         description="There is something wrong with the API, please try again later",
                         color=0xE02B2B,
                     )
-                await context.send(embed=embed)
+                await context.send(embed=embed, silent=True)
 
     @app_commands.command(
         name="feedback", description="Submit a feedback for the owners of the bot"

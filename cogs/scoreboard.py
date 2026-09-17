@@ -83,7 +83,7 @@ class Scoreboard(commands.Cog):
                 description="Please specify a subcommand.\n\n**Subcommands:**\n`set` - Set the channel to monitor for scores.\n`remove` - Stop monitoring scores in this server.\n`show` - Show the currently monitored channel.",
                 color=0xE02B2B,
             )
-            await context.send(embed=embed)
+            await context.send(embed=embed, silent=True)
 
     @scorechannel.command(
         name="set",
@@ -106,7 +106,7 @@ class Scoreboard(commands.Cog):
             description=f"Now monitoring scores in {channel.mention}.",
             color=0xBEBEFE,
         )
-        await context.send(embed=embed)
+        await context.send(embed=embed, silent=True)
 
     @scorechannel.command(
         name="remove",
@@ -125,7 +125,7 @@ class Scoreboard(commands.Cog):
             description="Stopped monitoring scores in this server.",
             color=0xBEBEFE,
         )
-        await context.send(embed=embed)
+        await context.send(embed=embed, silent=True)
 
     @scorechannel.command(
         name="show",
@@ -150,7 +150,7 @@ class Scoreboard(commands.Cog):
                 description=f"The bot monitors scores in {channel.mention if channel else channel_id}.",
                 color=0xBEBEFE,
             )
-        await context.send(embed=embed)
+        await context.send(embed=embed, silent=True)
 
     # ------------------------------------------------------------------ #
     # Score queries                                                       #
@@ -183,7 +183,7 @@ class Scoreboard(commands.Cog):
         embed = build_scoreboard_embed(
             records, game=game, day=day, sort_orders=sort_orders
         )
-        await context.send(embed=embed)
+        await context.send(embed=embed, silent=True)
 
     # ------------------------------------------------------------------ #
     # Event listeners                                                    #
@@ -213,7 +213,7 @@ class Scoreboard(commands.Cog):
             await parser.record_score(message, score_response, self.bot.database)
             # 4. Post the formatted result to the channel
             embed = await parser.format_response(score_response)
-            await message.channel.send(embed=embed)
+            await message.channel.send(embed=embed, silent=True)
             logger.info(
                 "Recorded %s score for %s in #%s using %s",
                 parser.game,

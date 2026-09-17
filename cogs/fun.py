@@ -118,7 +118,7 @@ class Fun(commands.Cog, name="fun"):
                         description="There is something wrong with the API, please try again later",
                         color=0xE02B2B,
                     )
-                await context.send(embed=embed)
+                await context.send(embed=embed, silent=True)
 
     @commands.hybrid_command(
         name="coinflip", description="Make a coin flip, but give your bet before."
@@ -131,7 +131,7 @@ class Fun(commands.Cog, name="fun"):
         """
         buttons = Choice()
         embed = discord.Embed(description="What is your bet?", color=0xBEBEFE)
-        message = await context.send(embed=embed, view=buttons)
+        message = await context.send(embed=embed, view=buttons, silent=True)
         await buttons.wait()  # We wait for the user to click a button.
         result = random.choice(["heads", "tails"])
         if buttons.value == result:
@@ -156,7 +156,7 @@ class Fun(commands.Cog, name="fun"):
         :param context: The hybrid command context.
         """
         view = RockPaperScissorsView()
-        await context.send("Please make your choice", view=view)
+        await context.send("Please make your choice", view=view, silent=True)
 
 
 async def setup(bot) -> None:

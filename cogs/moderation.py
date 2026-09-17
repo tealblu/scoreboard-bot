@@ -46,7 +46,7 @@ class Moderation(commands.Cog, name="moderation"):
             embed = discord.Embed(
                 description="User has administrator permissions.", color=0xE02B2B
             )
-            await context.send(embed=embed)
+            await context.send(embed=embed, silent=True)
         else:
             try:
                 embed = discord.Embed(
@@ -54,7 +54,7 @@ class Moderation(commands.Cog, name="moderation"):
                     color=0xBEBEFE,
                 )
                 embed.add_field(name="Reason:", value=reason)
-                await context.send(embed=embed)
+                await context.send(embed=embed, silent=True)
                 try:
                     await member.send(
                         f"You were kicked by **{context.author}** from **{context.guild.name}**!\nReason: {reason}"
@@ -68,7 +68,7 @@ class Moderation(commands.Cog, name="moderation"):
                     description="An error occurred while trying to kick the user. Make sure my role is above the role of the user you want to kick.",
                     color=0xE02B2B,
                 )
-                await context.send(embed=embed)
+                await context.send(embed=embed, silent=True)
 
     @commands.hybrid_command(
         name="nick",
@@ -99,13 +99,13 @@ class Moderation(commands.Cog, name="moderation"):
                 description=f"**{member}'s** new nickname is **{nickname}**!",
                 color=0xBEBEFE,
             )
-            await context.send(embed=embed)
+            await context.send(embed=embed, silent=True)
         except:
             embed = discord.Embed(
                 description="An error occurred while trying to change the nickname of the user. Make sure my role is above the role of the user you want to change the nickname.",
                 color=0xE02B2B,
             )
-            await context.send(embed=embed)
+            await context.send(embed=embed, silent=True)
 
     @commands.hybrid_command(
         name="ban",
@@ -135,14 +135,14 @@ class Moderation(commands.Cog, name="moderation"):
                 embed = discord.Embed(
                     description="User has administrator permissions.", color=0xE02B2B
                 )
-                await context.send(embed=embed)
+                await context.send(embed=embed, silent=True)
             else:
                 embed = discord.Embed(
                     description=f"**{member}** was banned by **{context.author}**!",
                     color=0xBEBEFE,
                 )
                 embed.add_field(name="Reason:", value=reason)
-                await context.send(embed=embed)
+                await context.send(embed=embed, silent=True)
                 try:
                     await member.send(
                         f"You were banned by **{context.author}** from **{context.guild.name}**!\nReason: {reason}"
@@ -157,7 +157,7 @@ class Moderation(commands.Cog, name="moderation"):
                 description="An error occurred while trying to ban the user. Make sure my role is above the role of the user you want to ban.",
                 color=0xE02B2B,
             )
-            await context.send(embed=embed)
+            await context.send(embed=embed, silent=True)
 
     @commands.hybrid_group(
         name="warning",
@@ -175,7 +175,7 @@ class Moderation(commands.Cog, name="moderation"):
                 description="Please specify a subcommand.\n\n**Subcommands:**\n`add` - Add a warning to a user.\n`remove` - Remove a warning from a user.\n`list` - List all warnings of a user.",
                 color=0xE02B2B,
             )
-            await context.send(embed=embed)
+            await context.send(embed=embed, silent=True)
 
     @warning.command(
         name="add",
@@ -207,7 +207,7 @@ class Moderation(commands.Cog, name="moderation"):
             color=0xBEBEFE,
         )
         embed.add_field(name="Reason:", value=reason)
-        await context.send(embed=embed)
+        await context.send(embed=embed, silent=True)
         try:
             await member.send(
                 f"You were warned by **{context.author}** in **{context.guild.name}**!\nReason: {reason}"
@@ -245,7 +245,7 @@ class Moderation(commands.Cog, name="moderation"):
             description=f"I've removed the warning **#{warn_id}** from **{member}**!\nTotal warns for this user: {total}",
             color=0xBEBEFE,
         )
-        await context.send(embed=embed)
+        await context.send(embed=embed, silent=True)
 
     @warning.command(
         name="list",
@@ -269,7 +269,7 @@ class Moderation(commands.Cog, name="moderation"):
             for warning in warnings_list:
                 description += f"• Warned by <@{warning[2]}>: **{warning[3]}** (<t:{warning[4]}>) - Warn ID #{warning[5]}\n"
         embed.description = description
-        await context.send(embed=embed)
+        await context.send(embed=embed, silent=True)
 
     @commands.hybrid_command(
         name="purge",
@@ -286,14 +286,14 @@ class Moderation(commands.Cog, name="moderation"):
         :param amount: The number of messages that should be deleted.
         """
         await context.send(
-            "Deleting messages..."
+            "Deleting messages...", silent=True
         )  # Bit of a hacky way to make sure the bot responds to the interaction and doens't get a "Unknown Interaction" response
         purged_messages = await context.channel.purge(limit=amount + 1)
         embed = discord.Embed(
             description=f"**{context.author}** cleared **{len(purged_messages)-1}** messages!",
             color=0xBEBEFE,
         )
-        await context.channel.send(embed=embed)
+        await context.channel.send(embed=embed, silent=True)
 
     @commands.hybrid_command(
         name="hackban",
@@ -325,13 +325,13 @@ class Moderation(commands.Cog, name="moderation"):
                 color=0xBEBEFE,
             )
             embed.add_field(name="Reason:", value=reason)
-            await context.send(embed=embed)
+            await context.send(embed=embed, silent=True)
         except Exception:
             embed = discord.Embed(
                 description="An error occurred while trying to ban the user. Make sure ID is an existing ID that belongs to a user.",
                 color=0xE02B2B,
             )
-            await context.send(embed=embed)
+            await context.send(embed=embed, silent=True)
 
     @commands.hybrid_command(
         name="archive",
@@ -367,7 +367,7 @@ class Moderation(commands.Cog, name="moderation"):
                     f"{message.created_at.strftime('%d.%m.%Y %H:%M:%S')} {message.author} {message.id}: {message.clean_content} {attachments_text}\n"
                 )
         f = discord.File(log_file)
-        await context.send(file=f)
+        await context.send(file=f, silent=True)
         os.remove(log_file)
 
 

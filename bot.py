@@ -244,12 +244,12 @@ class DiscordBot(commands.Bot):
                 description=f"**Please slow down** - You can use this command again in {f'{round(hours)} hours' if round(hours) > 0 else ''} {f'{round(minutes)} minutes' if round(minutes) > 0 else ''} {f'{round(seconds)} seconds' if round(seconds) > 0 else ''}.",
                 color=0xE02B2B,
             )
-            await context.send(embed=embed)
+            await context.send(embed=embed, silent=True)
         elif isinstance(error, commands.NotOwner):
             embed = discord.Embed(
                 description="You are not the owner of the bot!", color=0xE02B2B
             )
-            await context.send(embed=embed)
+            await context.send(embed=embed, silent=True)
             if context.guild:
                 self.logger.warning(
                     f"{context.author} (ID: {context.author.id}) tried to execute an owner only command in the guild {context.guild.name} (ID: {context.guild.id}), but the user is not an owner of the bot."
@@ -265,7 +265,7 @@ class DiscordBot(commands.Bot):
                 + "` to execute this command!",
                 color=0xE02B2B,
             )
-            await context.send(embed=embed)
+            await context.send(embed=embed, silent=True)
         elif isinstance(error, commands.BotMissingPermissions):
             embed = discord.Embed(
                 description="I am missing the permission(s) `"
@@ -273,7 +273,7 @@ class DiscordBot(commands.Bot):
                 + "` to fully perform this command!",
                 color=0xE02B2B,
             )
-            await context.send(embed=embed)
+            await context.send(embed=embed, silent=True)
         elif isinstance(error, commands.MissingRequiredArgument):
             embed = discord.Embed(
                 title="Error!",
@@ -281,7 +281,7 @@ class DiscordBot(commands.Bot):
                 description=str(error).capitalize(),
                 color=0xE02B2B,
             )
-            await context.send(embed=embed)
+            await context.send(embed=embed, silent=True)
         else:
             raise error
 
