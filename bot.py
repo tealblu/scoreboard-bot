@@ -195,6 +195,8 @@ class TrivialBot(commands.Bot):
         self.logger.info("-------------------")
         await self.init_db()
         await self.load_cogs()
+        # Register slash commands with Discord on startup (global scope).
+        await self.tree.sync()
         self.status_task.start()
         self.database = DatabaseManager(
             connection=await aiosqlite.connect(DATABASE_PATH)
