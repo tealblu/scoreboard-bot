@@ -80,11 +80,7 @@ class MapTapScoreParser(ScoreParser):
 
         # Show round breakdown in the embed.
         if rounds:
-            resp.description = "\n".join(
-                [" ".join(rounds)] + ([f"*{day}*"] if day else [])
-            )
-        elif day:
-            resp.description = f"*{day}*"
+            resp.description = " ".join(rounds)
 
         return resp
 
