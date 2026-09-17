@@ -7,8 +7,9 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from parsers import ScoreParser
-from parsers.example_parser import ExampleScoreParser
+from parsers import ScoreParser, select_parser, build_scoreboard_embed
+from parsers.base import _utc_today
+from parsers.registry import discover_parsers
 
 if TYPE_CHECKING:
     from bot import DiscordBot
@@ -22,21 +23,27 @@ class Scoreboard(commands.Cog):
 
     def __init__(self, bot: DiscordBot) -> None:
         self.bot = bot
-        self.parsers: list[ScoreParser] = []
         self._tracked_channels: dict[int, int] = {}  # guild_id -> channel_id
 
-        # --- Register parsers here ---
-        self.add_parser(ExampleScoreParser())
+        # -------------------------------------------------------------- #
+        # Parsers are auto-discovered from the parsers/ package —         #
+        # adding a new game = dropping one file, nothing else to edit.    #
+        # -------------------------------------------------------------- #
+        self.parsers: list[ScoreParser] = discover_parsers()
+        for parser in self.parsers:
+            logger.info(
+                "Registered parser: %s (game: %s)", type(parser).__name__, parser.game
+            )
 
     # ------------------------------------------------------------------ #
     # Parser management                                                  #
     # ------------------------------------------------------------------ #
 
     def add_parser(self, parser: ScoreParser) -> None:
-        """Register a ScoreParser instance.
+        """Manually append a parser instance (for special cases).
 
-        Parsers are checked in insertion order; the first one whose
-        ``can_parse`` returns ``True`` wins.
+        Parsers are checked in registration order by ``select_parser``;
+        the first one whose ``can_parse`` returns ``True`` wins.
         """
         self.parsers.append(parser)
         logger.info("Registered parser: %s", type(parser).__name__)
@@ -146,6 +153,39 @@ class Scoreboard(commands.Cog):
         await context.send(embed=embed)
 
     # ------------------------------------------------------------------ #
+    # Score queries                                                       #
+    # ------------------------------------------------------------------ #
+
+    @commands.command(name="scores", help="Show the score leaderboard.")
+    @commands.guild_only()
+    async def scores(self, context: Context, game: str = None, day: str = None) -> None:
+        """
+        Show the score leaderboard for this guild.
+
+        Usage:
+            !scores                   — today's scores, all games
+            !scores wordle            — today's wordle scores
+            !scores wordle 2026-09-17 — wordle scores for a specific date
+
+        :param context: The command context.
+        :param game: Optional game identifier to filter by.
+        :param day: Optional date (YYYY-MM-DD) to filter by.
+        """
+        if day is None:
+            day = _utc_today()
+
+        records = await context.bot.database.get_scores(
+            guild_id=context.guild.id,
+            game=game,
+            day=day,
+        )
+        sort_orders = {p.game: p.score_sort for p in self.parsers}
+        embed = build_scoreboard_embed(
+            records, game=game, day=day, sort_orders=sort_orders
+        )
+        await context.send(embed=embed)
+
+    # ------------------------------------------------------------------ #
     # Event listeners                                                    #
     # ------------------------------------------------------------------ #
 
@@ -160,25 +200,33 @@ class Scoreboard(commands.Cog):
         if tracked_channel is None or message.channel.id != tracked_channel:
             return
 
-        for parser in self.parsers:
-            try:
-                if await parser.can_parse(message):
-                    score_response = await parser.parse(message)
-                    embed = await parser.format_response(score_response)
-                    await message.channel.send(embed=embed)
-                    logger.info(
-                        "Parsed scores from %s in #%s using %s",
-                        message.author,
-                        message.channel,
-                        type(parser).__name__,
-                    )
-                    return  # first matching parser wins
-            except Exception:
-                logger.exception(
-                    "Parser %s failed on message %s",
-                    type(parser).__name__,
-                    message.id,
-                )
+        # 1. Decide which parser handles this message (one parser per game)
+        parser = await select_parser(self.parsers, message)
+        if parser is None:
+            return
+
+        try:
+            # 2. Extract the user's score for that game
+            score_response = await parser.parse(message)
+            # 3. Persist ONE score for the game BEFORE posting, so a daily
+            #    result is never lost even if the embed fails.
+            await parser.record_score(message, score_response, self.bot.database)
+            # 4. Post the formatted result to the channel
+            embed = await parser.format_response(score_response)
+            await message.channel.send(embed=embed)
+            logger.info(
+                "Recorded %s score for %s in #%s using %s",
+                parser.game,
+                message.author,
+                message.channel,
+                type(parser).__name__,
+            )
+        except Exception:
+            logger.exception(
+                "Parser %s failed on message %s",
+                type(parser).__name__,
+                message.id,
+            )
 
 
 async def setup(bot: DiscordBot) -> None:

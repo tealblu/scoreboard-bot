@@ -1,36 +1,43 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import discord
 
 from .base import ScoreParser, ScoreResponse
 
-if TYPE_CHECKING:
-    import discord
-
 
 class ExampleScoreParser(ScoreParser):
-    """Skeleton parser — replace the logic below with real parsing code.
+    """Skeleton parser — copy this file to add a REAL game parser.
 
-    This shows the contract that every ScoreParser subclass must satisfy.
+    One parser per game: Wordle gets a parser, MapTap gets a parser, etc.
+    Set ``game`` to the game's stable identifier (used as the database key)
+    and replace the TODO logic below.
     """
 
+    game = "example"
+
     async def can_parse(self, message: discord.Message) -> bool:
-        # TODO: check message content against the expected format
+        # TODO: check message.content against this game's expected format
         return False
 
     async def parse(self, message: discord.Message) -> ScoreResponse:
-        # TODO: extract player names and scores from the message
+        # TODO: extract the author's score from the message
         return ScoreResponse(
+            game=self.game,
             title="Example Scores",
-            scores={},
+            score=None,  # TODO: e.g. number of guesses
+            user_id=message.author.id,
+            username=message.author.display_name,
+            # meta={"number": "1234", "mode": "normal"},
         )
 
     async def format_response(self, score_response: ScoreResponse) -> discord.Embed:
         # TODO: build a rich embed from the parsed data
         embed = discord.Embed(
             title=score_response.title,
+            description=score_response.description,
             color=score_response.color,
         )
-        for player, score in score_response.scores.items():
-            embed.add_field(name=player, value=str(score), inline=True)
+        if score_response.scores:
+            for player, score in score_response.scores.items():
+                embed.add_field(name=player, value=str(score), inline=True)
         return embed
