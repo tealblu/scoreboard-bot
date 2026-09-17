@@ -94,3 +94,47 @@ class DatabaseManager:
             for row in result:
                 result_list.append(row)
             return result_list
+
+    async def set_score_channel(self, server_id: int, channel_id: int) -> None:
+        """
+        Set the channel that the bot monitors for scores in a server.
+
+        :param server_id: The ID of the server.
+        :param channel_id: The ID of the channel to monitor.
+        """
+        await self.connection.execute(
+            "INSERT INTO score_channels(server_id, channel_id) VALUES (?, ?) "
+            "ON CONFLICT(server_id) DO UPDATE SET channel_id=excluded.channel_id",
+            (
+                server_id,
+                channel_id,
+            ),
+        )
+        await self.connection.commit()
+
+    async def get_score_channel(self, server_id: int) -> int | None:
+        """
+        Get the channel that the bot monitors for scores in a server.
+
+        :param server_id: The ID of the server.
+        :return: The ID of the monitored channel, or None if not set.
+        """
+        rows = await self.connection.execute(
+            "SELECT channel_id FROM score_channels WHERE server_id=?",
+            (server_id,),
+        )
+        async with rows as cursor:
+            result = await cursor.fetchone()
+            return int(result[0]) if result is not None else None
+
+    async def remove_score_channel(self, server_id: int) -> None:
+        """
+        Remove the monitored score channel from a server.
+
+        :param server_id: The ID of the server.
+        """
+        await self.connection.execute(
+            "DELETE FROM score_channels WHERE server_id=?",
+            (server_id,),
+        )
+        await self.connection.commit()
