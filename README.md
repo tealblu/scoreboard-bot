@@ -118,6 +118,28 @@ docker compose up -d --build
 
 > **Note**: `-d` will make the container run in detached mode, so in the background.
 
+### Deploy from GHCR (production)
+
+The bot image is published to **GitHub Container Registry** automatically by the
+`Publish Docker image` workflow (on every push to `main` and on `v*` tags).
+
+On a server with Docker installed:
+
+1. Set the owner in the compose file (use your GitHub username or organization, or set a `GHCR_OWNER` env var):
+
+   ```
+   GHCR_OWNER=your-github-user docker compose up -d
+   ```
+
+2. Make sure `.env` exists next to `docker-compose.yml` with at least `TOKEN`, `PREFIX` and `INVITE_LINK` set.
+
+The database and log file live in the `bot-data` Docker volume (survives
+container updates/restarts).
+
+> **Note**: GHCR packages are **private by default**. Open the package settings
+> (https://github.com/users/<owner>/packages/container/package/scoreboard-bot) and
+> set visibility to **Public** if you want to pull the image without authentication.
+
 ## Local parser testing
 
 You can exercise the **full score-recording pipeline** without deploying the bot

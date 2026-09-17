@@ -1,6 +1,5 @@
 .git/
 .github/
-database/
 venv/
 .env*
 CODE_OF_CONDUCT.md

@@ -23,6 +23,12 @@ from database import DatabaseManager
 
 load_dotenv()
 
+# Optional overrides for containerised deployments; fall back to the
+# repository defaults when unset.
+BASE_DIR = os.path.realpath(os.path.dirname(__file__))
+DATABASE_PATH = os.getenv("DATABASE_PATH", default=f"{BASE_DIR}/database/database.db")
+DISCORD_LOG_PATH = os.getenv("DISCORD_LOG_PATH", default="discord.log")
+
 """	
 Setup bot intents (events restrictions)
 For more information about intents, please go to the following websites:
@@ -109,7 +115,7 @@ logger.setLevel(logging.INFO)
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(LoggingFormatter())
 # File handler
-file_handler = logging.FileHandler(filename="discord.log", encoding="utf-8", mode="w")
+file_handler = logging.FileHandler(filename=DISCORD_LOG_PATH, encoding="utf-8", mode="w")
 file_handler_formatter = logging.Formatter(
     "[{asctime}] [{levelname:<8}] {name}: {message}", "%Y-%m-%d %H:%M:%S", style="{"
 )
@@ -141,13 +147,8 @@ class DiscordBot(commands.Bot):
         self.invite_link = os.getenv("INVITE_LINK")
 
     async def init_db(self) -> None:
-        async with aiosqlite.connect(
-            f"{os.path.realpath(os.path.dirname(__file__))}/database/database.db"
-        ) as db:
-            with open(
-                f"{os.path.realpath(os.path.dirname(__file__))}/database/schema.sql",
-                encoding = "utf-8"
-            ) as file:
+        async with aiosqlite.connect(DATABASE_PATH) as db:
+            with open(f"{BASE_DIR}/database/schema.sql", encoding="utf-8") as file:
                 await db.executescript(file.read())
             await db.commit()
 
@@ -197,9 +198,7 @@ class DiscordBot(commands.Bot):
         await self.load_cogs()
         self.status_task.start()
         self.database = DatabaseManager(
-            connection=await aiosqlite.connect(
-                f"{os.path.realpath(os.path.dirname(__file__))}/database/database.db"
-            )
+            connection=await aiosqlite.connect(DATABASE_PATH)
         )
 
     async def on_message(self, message: discord.Message) -> None:
