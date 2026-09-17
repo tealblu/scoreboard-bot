@@ -118,6 +118,141 @@ docker compose up -d --build
 
 > **Note**: `-d` will make the container run in detached mode, so in the background.
 
+### Deploy from GHCR (production)
+
+The bot image is published to **GitHub Container Registry** automatically by the
+`Publish Docker image` workflow (on every push to `main` and on `v*` tags).
+
+On a server with Docker installed:
+
+1. Set the owner in the compose file (use your GitHub username or organization, or set a `GHCR_OWNER` env var):
+
+   ```
+   GHCR_OWNER=your-github-user docker compose up -d
+   ```
+
+2. Make sure `.env` exists next to `docker-compose.yml` with at least `TOKEN`, `PREFIX` and `INVITE_LINK` set.
+
+The database and log file live in the `bot-data` Docker volume (survives
+container updates/restarts).
+
+> **Note**: GHCR packages are **private by default**. Open the package settings
+> (https://github.com/users/<owner>/packages/container/package/scoreboard-bot) and
+> set visibility to **Public** if you want to pull the image without authentication.
+
+## Local parser testing
+
+You can exercise the **full score-recording pipeline** without deploying the bot
+or needing a Discord token:
+
+```
+1. select_parser   → decides which parser (game) handles the input
+2. parse           → the parser extracts the user's score
+3. record_score    → the score is written to a local SQLite DB
+4. format_response → the embed is rendered as terminal text
+```
+
+Parser classes are auto-discovered from the `parsers/` directory — just drop in a
+file that subclasses `ScoreParser` (one parser per game: Wordle gets a parser,
+MapTap gets a parser, etc.), give it a unique `game` identifier (and optionally
+`score_sort = "desc"` if lower isn't better), and it is picked up by **both**
+the local tester and the deployed cog — no registration edits anywhere.
+
+Scores are stored per row `(guild, user, game, day)`, so many users can post many
+games and re-posting the same daily score simply overwrites that day's row.
+
+Prerequisite: install the requirements in a virtual environment:
+
+```
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+Run it with one of three input modes:
+
+```
+# 1. Single prompt — parse one string and show what the bot would post
+python local_tester.py -p "Wordle 1,234 4/6"
+
+# 2. Interactive REPL — type messages one at a time
+python local_tester.py
+
+# 3. File — one message per line
+python local_tester.py -f test_inputs.txt
+
+# 3b. File with a delimiter line (e.g. '---') for multi-line messages
+python local_tester.py -f test_inputs.txt -d "---"
+```
+
+Simulate different users by prefixing an input with `@Name:userid ::` — the
+prefix is stripped before parsing, and the score is recorded for that user:
+
+```
+# test_inputs.txt
+@Alice:1001 :: Wordle 1,234 4/6
+@Bob:1002 :: Wordle 1,235 X/6
+@Alice:1001 :: Wordle 1,234 5/6   # same day → overwrites Alice's row (upsert)
+```
+
+Other flags:
+
+```
+python local_tester.py --list                 # Show discovered parsers
+python local_tester.py -f inputs.txt --verbose
+python local_tester.py -f inputs.txt --db out/test.db   # where scores are stored
+```
+
+**Reading scores back** — the tester's `--scores` mode uses the **exact same
+core code** as the bot's `!scores` command (`DatabaseManager.get_scores` +
+`parsers.scoring.build_scoreboard_embed`), so you can preview the leaderboard
+embed before deploying:
+
+```
+python local_tester.py --scores                    # today, all games
+python local_tester.py --scores wordle             # today, wordle only
+python local_tester.py --scores wordle --day 2026-09-17   # specific date
+```
+
+Since `get_scores` ties rows to a guild, the local query uses the mock
+guild id (3000), matching where the tester records scores.
+
+Notes:
+
+- Parsers never hit the network: messages are mocked, and the resulting
+  `discord.Embed` is rendered as terminal text, so you can review exactly what
+  would be sent to the channel.
+- A parser whose `format_response` builds a `discord.Embed` must `import discord`
+  at module level (not only under `TYPE_CHECKING`), since the embed is constructed
+  at runtime.
+- Parser classes without a `game` identifier are treated as helpers and skipped
+  during auto-discovery.
+
+## `!scores` command
+
+The deployed bot has a prefix command that queries the same underlying data:
+
+```
+!scores                    — today's scores, all games
+!scores wordle             — today's wordle scores
+!scores wordle 2026-09-17  — wordle scores for a specific date
+```
+
+Command → data flow (shared with the local tester):
+
+```
+!scores  ──┐
+           ├─→  DatabaseManager.get_scores(guild_id, game, day)
+--scores ──┘              │
+                          ▼
+              parsers.scoring.build_scoreboard_embed(records)
+                          │
+              ┌───────────┴───────────┐
+              ▼                       ▼
+        Discord embed         terminal render
+        (channel reply)        (local tester)
+```
+
 ## Issues or Questions
 
 If you have any issues or questions of how to code a specific command, you can:
