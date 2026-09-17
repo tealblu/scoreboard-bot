@@ -25,6 +25,7 @@ class KrillionScoreParser(ScoreParser):
 
     game = "krillion"
     score_sort = "desc"  # higher score is better
+    game_url = "https://krillion.io"
 
     # Matches "Krillion #64" — the puzzle number.
     _header_re = re.compile(r"Krillion\s*#\s*(\d+)", re.IGNORECASE)

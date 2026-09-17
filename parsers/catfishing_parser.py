@@ -26,6 +26,7 @@ class CatfishingScoreParser(ScoreParser):
 
     game = "catfishing"
     score_sort = "desc"  # higher score is better
+    game_url = "https://catfishing.net"
 
     # "catfishing.net" — the share URL header.
     _url_re = re.compile(r"catfishing\.net", re.IGNORECASE)

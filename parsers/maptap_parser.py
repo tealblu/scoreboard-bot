@@ -23,6 +23,7 @@ class MapTapScoreParser(ScoreParser):
 
     game = "maptap"
     score_sort = "desc"  # higher score is better
+    game_url = "https://www.maptap.gg"
 
     _MONTH_NAMES = {name.lower(): idx for idx, name in enumerate(
         ["January", "February", "March", "April", "May", "June",

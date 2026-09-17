@@ -59,6 +59,71 @@ class DatabaseManager:
         )
         await self.connection.commit()
 
+    async def set_daily_reminder(
+        self,
+        server_id: int,
+        enabled: bool,
+        reminder_time: str,
+    ) -> None:
+        """
+        Upsert the daily reminder settings for a server.
+
+        Updating settings also clears ``last_fired`` so the reminder can
+        fire again at the (possibly new) time on the current day.
+
+        :param server_id: The ID of the server.
+        :param enabled: Whether the daily reminder is enabled.
+        :param reminder_time: "HH:MM" in UTC (24-hour).
+        """
+        await self.connection.execute(
+            "INSERT INTO daily_reminders(server_id, enabled, reminder_time) "
+            "VALUES (?, ?, ?) "
+            "ON CONFLICT(server_id) DO UPDATE SET "
+            "enabled=excluded.enabled, reminder_time=excluded.reminder_time, "
+            "last_fired=NULL, updated_at=CURRENT_TIMESTAMP",
+            (
+                str(server_id),
+                1 if enabled else 0,
+                reminder_time,
+            ),
+        )
+        await self.connection.commit()
+
+    async def get_daily_reminder(self, server_id: int) -> dict | None:
+        """
+        Get the daily reminder settings for a server, or None if unset.
+
+        :param server_id: The ID of the server.
+        :return: ``{enabled, reminder_time, last_fired}`` or None.
+        """
+        rows = await self.connection.execute(
+            "SELECT enabled, reminder_time, last_fired "
+            "FROM daily_reminders WHERE server_id=?",
+            (str(server_id),),
+        )
+        async with rows as cursor:
+            result = await cursor.fetchone()
+            if result is None:
+                return None
+            return {
+                "enabled": bool(result[0]),
+                "reminder_time": result[1],
+                "last_fired": result[2],
+            }
+
+    async def mark_reminder_sent(self, server_id: int, day: str) -> None:
+        """
+        Record that the daily reminder was sent for *day* so it doesn't re-fire.
+
+        :param server_id: The ID of the server.
+        :param day: The date (YYYY-MM-DD) the reminder was sent.
+        """
+        await self.connection.execute(
+            "UPDATE daily_reminders SET last_fired=? WHERE server_id=?",
+            (day, str(server_id)),
+        )
+        await self.connection.commit()
+
     async def record_user_score(
         self,
         guild_id: int,

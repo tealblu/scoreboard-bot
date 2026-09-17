@@ -14,6 +14,7 @@ class ExampleScoreParser(ScoreParser):
     """
 
     game = "example"
+    # game_url = "https://yourgame.example"  # shown in the daily reminder
 
     async def can_parse(self, message: discord.Message) -> bool:
         # TODO: check message.content against this game's expected format

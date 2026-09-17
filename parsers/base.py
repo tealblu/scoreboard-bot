@@ -73,7 +73,9 @@ class ScoreParser(ABC):
         - set the ``game`` class attribute to a stable identifier, e.g. "wordle"
         - implement ``can_parse`` / ``parse`` / ``format_response``
 
-    Optionally set ``score_sort`` if lower scores aren't better for this game.
+    Optionally set ``score_sort`` if lower scores aren't better for this game,
+    and ``game_url`` to point players at the game's website (used by the daily
+    reminder to list every supported game with a link).
 
     Scoring persistence is handled by the default ``record_score``
     implementation; override it only for game-specific storage.
@@ -91,6 +93,9 @@ class ScoreParser(ABC):
     # "asc"  = lower score is better  (fewer guesses; Wordle-style)
     # "desc" = higher score is better (more points; arcade-style)
     score_sort: Literal["asc", "desc"] = "asc"
+    # Link to the game's website, shown in the daily reminder. Leave empty
+    # if the game has no public URL.
+    game_url: str = ""
 
     @abstractmethod
     async def can_parse(self, message: discord.Message) -> bool:
