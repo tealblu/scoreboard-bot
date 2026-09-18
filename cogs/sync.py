@@ -24,6 +24,10 @@ class Sync(commands.Cog, name="sync"):
         """
         Register the bot's slash commands with Discord.
 
+        `global` pushes the command tree at global scope. `guild` clears the
+        guild's command overrides so it uses the global tree — there are no
+        per-guild copies, which avoids duplicate slash commands in the menu.
+
         :param context: The command context.
         :param scope: The scope of the sync. Can be `global` or `guild`.
         """
@@ -31,9 +35,17 @@ class Sync(commands.Cog, name="sync"):
             await context.bot.tree.sync()
             description = "Slash commands have been globally synchronized."
         elif scope == "guild":
-            context.bot.tree.copy_global_to(guild=context.guild)
+            # There is intentionally no per-guild command override. Copying
+            # the global tree to a guild makes Discord register guild-scope
+            # copies alongside the global ones, which shows up as duplicate
+            # slash commands in the menu. Instead, clear any guild-local
+            # commands so the guild just uses the global tree (propagation of
+            # global commands can take up to an hour).
+            context.bot.tree.clear_commands(guild=context.guild)
             await context.bot.tree.sync(guild=context.guild)
-            description = "Slash commands have been synchronized in this guild."
+            description = (
+                "Guild-specific commands cleared; this guild now uses the global command tree."
+            )
         else:
             embed = discord.Embed(
                 description="The scope must be `global` or `guild`.",
@@ -62,6 +74,8 @@ class Sync(commands.Cog, name="sync"):
             await context.bot.tree.sync()
             description = "Slash commands have been globally unsynchronized."
         elif scope == "guild":
+            # Same as `sync guild`: clear any per-guild command overrides so
+            # the guild falls back to the global tree.
             context.bot.tree.clear_commands(guild=context.guild)
             await context.bot.tree.sync(guild=context.guild)
             description = "Slash commands have been unsynchronized in this guild."
