@@ -61,7 +61,7 @@ class ScoreRecord:
     user_name: str
     game: str
     day: str
-    score: int
+    score: int | float
     meta: dict[str, str] | None = None
 
 

@@ -19,7 +19,7 @@ from discord.ext import commands, tasks
 from discord.ext.commands import Context
 from dotenv import load_dotenv
 
-from database import DatabaseManager
+from database import DatabaseManager, migrate_user_scores_schema
 from parsers.registry import discover_parsers
 
 load_dotenv()
@@ -150,6 +150,7 @@ class TrivialBot(commands.Bot):
         async with aiosqlite.connect(DATABASE_PATH) as db:
             with open(f"{BASE_DIR}/database/schema.sql", encoding="utf-8") as file:
                 await db.executescript(file.read())
+            await migrate_user_scores_schema(db)
             await db.commit()
 
     async def load_cogs(self) -> None:

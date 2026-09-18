@@ -45,7 +45,7 @@ import discord
 PROJECT_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from database import DatabaseManager  # noqa: E402
+from database import DatabaseManager, migrate_user_scores_schema  # noqa: E402
 from parsers.base import ScoreParser, _utc_today  # noqa: E402
 from parsers.dispatch import select_parser  # noqa: E402
 from parsers.registry import discover_parsers  # noqa: E402
@@ -284,6 +284,7 @@ async def open_db(path: Path) -> DatabaseManager:
     connection = await aiosqlite.connect(str(path))
     schema = PROJECT_ROOT / "database" / "schema.sql"
     await connection.executescript(schema.read_text(encoding="utf-8"))
+    await migrate_user_scores_schema(connection)
     await connection.commit()
     return DatabaseManager(connection=connection)
 

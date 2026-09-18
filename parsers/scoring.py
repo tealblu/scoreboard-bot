@@ -17,6 +17,13 @@ from .base import ScoreRecord
 _SortOrders = dict[str, str]  # game -> "asc" | "desc" (default "asc")
 
 
+def _fmt_score(score: int | float) -> str:
+    """Render a score for the leaderboard: 50.0 → '50', 40.49 → '40.49'."""
+    if isinstance(score, float) and score.is_integer():
+        return str(int(score))
+    return str(score)
+
+
 def _ranked(records: list[ScoreRecord], orders: _SortOrders) -> list[ScoreRecord]:
     """Sort records honoring each game's direction (lower=better by default)."""
 
@@ -69,7 +76,7 @@ def build_scoreboard_embed(
             title = f"🏆 {game.title()} — {date_label}"
         ranked = _ranked(records, orders)
         lines = [
-            f"**{i}.** {r.user_name} — **{r.score}**"
+            f"**{i}.** {r.user_name} — **{_fmt_score(r.score)}**"
             for i, r in enumerate(ranked, 1)
         ]
         embed = discord.Embed(title=title, description="\n".join(lines), color=color)
@@ -89,7 +96,7 @@ def build_scoreboard_embed(
 
     for game_name in sorted(grouped):
         game_records = _ranked(grouped[game_name], orders)
-        lines = [f"{r.user_name} — **{r.score}**" for r in game_records]
+        lines = [f"{r.user_name} — **{_fmt_score(r.score)}**" for r in game_records]
         embed.add_field(name=game_name.title(), value="\n".join(lines), inline=True)
 
     embed.set_footer(

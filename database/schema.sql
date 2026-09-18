@@ -18,12 +18,14 @@ CREATE TABLE IF NOT EXISTS `daily_reminders` (
 
 -- One row per (guild, user, game, day): many users x many games,
 -- one score per message. Re-posting a daily score overwrites the row.
+-- `score` is REAL so decimal scores (e.g. dialed's 40.49/50) store exactly;
+-- most games still write whole numbers.
 CREATE TABLE IF NOT EXISTS `user_scores` (
   `guild_id`   varchar(20)  NOT NULL,
   `user_id`    varchar(20)  NOT NULL,
   `game`       varchar(32)  NOT NULL,
   `day`        varchar(10)  NOT NULL,
-  `score`      int          NOT NULL,
+  `score`      real         NOT NULL,
   `user_name`  varchar(255) NOT NULL,
   `meta`       text         NULL,
   `created_at` timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP,
