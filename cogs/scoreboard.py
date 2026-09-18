@@ -314,6 +314,10 @@ class Scoreboard(commands.Cog):
         recorded = 0
         games: dict[str, int] = {}
         now_day = _utc_today()
+        # (author, game, day) keys already recorded on this run. History is
+        # iterated newest-first, so a duplicate same-day post for the same
+        # player/game must NOT overwrite the newer one just seen: skip it.
+        seen: set[tuple[int, str, str]] = set()
 
         async for message in channel.history(**kwargs):
             if message.author.bot:
@@ -332,6 +336,10 @@ class Scoreboard(commands.Cog):
                 message_day = message.created_at.strftime("%Y-%m-%d")
                 if response.day != message_day and response.day == now_day:
                     response.day = message_day
+                key = (message.author.id, parser.game, response.day)
+                if key in seen:
+                    continue  # a newer post for this player/game/day is recorded
+                seen.add(key)
                 await parser.record_score(message, response, self.bot.database)
                 recorded += 1
                 games[parser.game] = games.get(parser.game, 0) + 1
@@ -352,7 +360,7 @@ class Scoreboard(commands.Cog):
                 + (f" ({game_list})" if game_list else "")
                 + ".\n"
                 "No embeds were posted. Re-running is safe — same-day "
-                "scores for the same user simply overwrite."
+                "scores for the same user simply overwrite (newest post wins)."
             ),
             color=0xBEBEFE,
         )

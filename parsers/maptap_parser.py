@@ -123,6 +123,13 @@ class MapTapScoreParser(ScoreParser):
 
         year = datetime.now(timezone.utc).year
         try:
-            return datetime(year, month, day_num).strftime("%Y-%m-%d")
+            date = datetime(year, month, day_num)
         except ValueError:
             return None
+
+        # A date in the future means the share is from an earlier year
+        # (e.g. backfilling an old "December 17" message in January) —
+        # rewind so it doesn't land on a future day.
+        if date.date() > datetime.now(timezone.utc).date():
+            date = date.replace(year=year - 1)
+        return date.strftime("%Y-%m-%d")
