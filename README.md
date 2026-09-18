@@ -47,13 +47,16 @@ Make sure `.env` exists with at least `TOKEN` and `PREFIX`.
 | `!scores` | Today's scores across all games |
 | `!scores wordle` | Today's Wordle scores |
 | `!scores wordle 2026-09-17` | Wordle scores for a specific date |
+| `!/scorechannel set #channel` | Set the channel trivial monitors for scores (admins only) |
+| `!/scorechannel remove` | Stop monitoring scores in this server (admins only) |
+| `!/scorechannel show` | Show the currently monitored score channel (admins only) |
 | `!/nuke confirm` | Permanently delete this server's recorded scores (admins only; keeps channel/reminder settings) |
 | `!/backfill` | Scan the score channel's history and record score messages (admins only; `!/backfill 1000` scans more, `0` = all history) |
-| `!/dailyreminder enable` | Enable the daily games reminder (posts to the score channel) |
-| `!/dailyreminder disable` | Disable the daily games reminder |
-| `!/dailyreminder time 09:00` | Set the reminder time (UTC, 24-hour) |
-| `!/dailyreminder show` | Show the current reminder settings |
-| `!/dailyreminder test` | Preview the daily reminder (plus yesterday's scoreboard) in this channel |
+| `!/dailyreminder enable` | Enable the daily games reminder (admins only; posts to the score channel) |
+| `!/dailyreminder disable` | Disable the daily games reminder (admins only) |
+| `!/dailyreminder time 09:00` | Set the reminder time, UTC 24-hour (admins only) |
+| `!/dailyreminder show` | Show the current reminder settings (admins only) |
+| `!/dailyreminder test` | Preview the daily reminder (plus yesterday's scoreboard) in this channel (admins only) |
 
 ## Local testing
 

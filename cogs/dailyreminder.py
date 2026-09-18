@@ -197,6 +197,8 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
         description="Manage the daily games reminder.",
     )
     @commands.guild_only()
+    @commands.has_permissions(manage_guild=True)
+    @app_commands.default_permissions(manage_guild=True)
     async def dailyreminder(self, context: Context) -> None:
         """
         Manage the daily games reminder.
@@ -327,6 +329,7 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
         description="Show the current daily reminder settings.",
     )
     @commands.guild_only()
+    @commands.has_permissions(manage_guild=True)
     async def dailyreminder_show(self, context: Context) -> None:
         """
         Show the current daily reminder settings.

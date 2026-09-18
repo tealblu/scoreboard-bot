@@ -73,6 +73,8 @@ class Scoreboard(commands.Cog):
         description="Manage the channel trivial monitors for scores.",
     )
     @commands.guild_only()
+    @commands.has_permissions(manage_guild=True)
+    @app_commands.default_permissions(manage_guild=True)
     async def scorechannel(self, context: Context) -> None:
         """
         Manage the channel trivial monitors for scores.
@@ -90,7 +92,7 @@ class Scoreboard(commands.Cog):
         name="set",
         description="Set the channel trivial monitors for scores.",
     )
-    @commands.has_permissions(manage_channels=True)
+    @commands.has_permissions(manage_guild=True)
     @app_commands.describe(channel="The channel to monitor for score messages.")
     async def scorechannel_set(
         self, context: Context, channel: discord.TextChannel
@@ -113,7 +115,7 @@ class Scoreboard(commands.Cog):
         name="remove",
         description="Stop monitoring scores in this server.",
     )
-    @commands.has_permissions(manage_channels=True)
+    @commands.has_permissions(manage_guild=True)
     async def scorechannel_remove(self, context: Context) -> None:
         """
         Stop monitoring scores in this server.
@@ -133,6 +135,7 @@ class Scoreboard(commands.Cog):
         description="Show the currently monitored score channel.",
     )
     @commands.guild_only()
+    @commands.has_permissions(manage_guild=True)
     async def scorechannel_show(self, context: Context) -> None:
         """
         Show the currently monitored score channel.
@@ -196,6 +199,7 @@ class Scoreboard(commands.Cog):
     )
     @commands.guild_only()
     @commands.has_permissions(manage_guild=True)
+    @app_commands.default_permissions(manage_guild=True)
     @app_commands.describe(
         confirm="Type 'confirm' to permanently delete this server's scores."
     )
@@ -249,6 +253,7 @@ class Scoreboard(commands.Cog):
     )
     @commands.guild_only()
     @commands.has_permissions(manage_guild=True)
+    @app_commands.default_permissions(manage_guild=True)
     @app_commands.describe(
         limit="How many messages to scan (default: 200; 0 = all history).",
         days="Only scan messages posted in the last N days (default: all).",
