@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 
 import discord
@@ -233,6 +234,125 @@ class Scoreboard(commands.Cog):
             description=(
                 f"💥 Deleted **{deleted}** score{'s' if deleted != 1 else ''} "
                 f"for **{context.guild.name}**. Leaderboards are now empty."
+            ),
+            color=0xBEBEFE,
+        )
+        await context.send(embed=embed, silent=True)
+
+    # ------------------------------------------------------------------ #
+    # Backfill                                                           #
+    # ------------------------------------------------------------------ #
+
+    @commands.hybrid_command(
+        name="backfill",
+        description="Record score messages from the score channel's history.",
+    )
+    @commands.guild_only()
+    @commands.has_permissions(manage_guild=True)
+    @app_commands.describe(
+        limit="How many messages to scan (default: 200; 0 = all history).",
+        days="Only scan messages posted in the last N days (default: all).",
+    )
+    async def backfill(
+        self,
+        context: Context,
+        limit: int = 200,
+        days: int | None = None,
+    ) -> None:
+        """
+        Scan the score channel's message history and record any score
+        messages into the database — without posting result embeds.
+
+        Handy right after enabling a score channel, so leaderboards can be
+        filled from messages posted before trivial was watching. Re-running
+        is safe: same-day scores for the same user are overwritten.
+
+        Usage:
+            !backfill         — scan the last 200 messages
+            !backfill 1000    — scan the last 1000 messages
+            !backfill 0       — scan the entire history
+            !backfill 0 7     — entire history but only the last 7 days
+
+        :param context: The hybrid command context.
+        :param limit: Maximum number of messages to scan (0 = no limit).
+        :param days: Only scan messages newer than this many days.
+        """
+        channel_id = await self._get_tracked_channel(context.guild.id)
+        if channel_id is None:
+            embed = discord.Embed(
+                description="No score channel is set for this server. Use `/scorechannel set` first.",
+                color=0xE02B2B,
+            )
+            await context.send(embed=embed, silent=True)
+            return
+
+        channel = context.guild.get_channel(channel_id)
+        if channel is None:
+            embed = discord.Embed(
+                description="The configured score channel could not be found.",
+                color=0xE02B2B,
+            )
+            await context.send(embed=embed, silent=True)
+            return
+
+        limit_desc = "all" if limit <= 0 else f"up to **{limit}**"
+        await context.send(
+            embed=discord.Embed(
+                description=f"🔍 Scanning {limit_desc} messages in {channel.mention}…",
+                color=0xBEBEFE,
+            ),
+            silent=True,
+        )
+
+        kwargs: dict = {}
+        if limit > 0:
+            kwargs["limit"] = limit
+        if days is not None:
+            kwargs["after"] = datetime.now(timezone.utc) - timedelta(days=days)
+
+        scanned = 0
+        recorded = 0
+        games: dict[str, int] = {}
+        now_day = _utc_today()
+
+        async for message in channel.history(**kwargs):
+            if message.author.bot:
+                continue
+            scanned += 1
+            try:
+                parser = await select_parser(self.parsers, message)
+                if parser is None:
+                    continue
+                response = await parser.parse(message)
+                # Parsers default the day to "today" when the share text
+                # carries no date (Krillion, Wordle, ...). When backfilling
+                # old messages that's the wrong day — fall back to the
+                # message's own posting date unless the message itself was
+                # posted today (or the parser picked an explicit date).
+                message_day = message.created_at.strftime("%Y-%m-%d")
+                if response.day != message_day and response.day == now_day:
+                    response.day = message_day
+                await parser.record_score(message, response, self.bot.database)
+                recorded += 1
+                games[parser.game] = games.get(parser.game, 0) + 1
+            except Exception:
+                logger.exception(
+                    "Backfill: parser %s failed on message %s",
+                    type(parser).__name__ if parser else "?",
+                    message.id,
+                )
+
+        game_list = ", ".join(
+            f"{name} × {count}" for name, count in sorted(games.items())
+        )
+        embed = discord.Embed(
+            description=(
+                f"✅ Scanned **{scanned}** message(s) in {channel.mention}.\n"
+                f"Recorded **{recorded}** score(s)"
+                + (f" ({game_list})" if game_list else "")
+                + ".\n"
+                "No embeds were posted. Re-running is safe — same-day "
+                "scores for the same user simply overwrite."
             ),
             color=0xBEBEFE,
         )
