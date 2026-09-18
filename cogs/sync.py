@@ -14,12 +14,13 @@ class Sync(commands.Cog, name="sync"):
     def __init__(self, bot) -> None:
         self.bot = bot
 
-    @commands.command(
+    @commands.hybrid_command(
         name="sync",
         description="Sync slash commands with Discord (global or guild).",
     )
-    @app_commands.describe(scope="The scope of the sync. Can be `global` or `guild`")
     @commands.is_owner()
+    @app_commands.default_permissions(manage_guild=True)
+    @app_commands.describe(scope="The scope of the sync. Can be `global` or `guild`")
     async def sync(self, context: Context, scope: str) -> None:
         """
         Register the bot's slash commands with Discord.
@@ -56,12 +57,13 @@ class Sync(commands.Cog, name="sync"):
         embed = discord.Embed(description=description, color=0xBEBEFE)
         await context.send(embed=embed, silent=True)
 
-    @commands.command(
+    @commands.hybrid_command(
         name="unsync",
         description="Remove the bot's slash commands (global or guild).",
     )
-    @app_commands.describe(scope="The scope of the unsync. Can be `global` or `guild`")
     @commands.is_owner()
+    @app_commands.default_permissions(manage_guild=True)
+    @app_commands.describe(scope="The scope of the unsync. Can be `global` or `guild`")
     async def unsync(self, context: Context, scope: str) -> None:
         """
         Unregister the bot's slash commands with Discord.

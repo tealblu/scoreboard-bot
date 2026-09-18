@@ -160,8 +160,16 @@ class Scoreboard(commands.Cog):
     # Score queries                                                       #
     # ------------------------------------------------------------------ #
 
-    @commands.command(name="scores", help="Show the score leaderboard.")
+    @commands.hybrid_command(
+        name="scores",
+        description="Show the score leaderboard.",
+        help="Show the score leaderboard.",
+    )
     @commands.guild_only()
+    @app_commands.describe(
+        game="Optional game identifier to filter by, e.g. wordle.",
+        day="Optional date (YYYY-MM-DD) to filter by.",
+    )
     async def scores(self, context: Context, game: str = None, day: str = None) -> None:
         """
         Show the score leaderboard for this guild.

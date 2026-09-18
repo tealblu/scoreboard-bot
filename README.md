@@ -1,5 +1,9 @@
 # Trivial
 
+<p align="center">
+  <img src="resources/triviala.png" alt="Trivial logo" width="150">
+</p>
+
 **trivial** is a Discord bot that automatically tracks game scores from chat
 messages. When a user posts a score (e.g. a Wordle result), trivial parses it,
 stores it in SQLite, and replies with a formatted embed. A `!scores` command
@@ -44,9 +48,9 @@ Make sure `.env` exists with at least `TOKEN` and `PREFIX`.
 
 | Command | Description |
 |---------|-------------|
-| `!scores` | Today's scores across all games |
-| `!scores wordle` | Today's Wordle scores |
-| `!scores wordle 2026-09-17` | Wordle scores for a specific date |
+| `!/scores` | Today's scores across all games (available to everyone) |
+| `!/scores wordle` | Today's Wordle scores (available to everyone) |
+| `!/scores wordle 2026-09-17` | Wordle scores for a specific date (available to everyone) |
 | `!/scorechannel set #channel` | Set the channel trivial monitors for scores (admins only) |
 | `!/scorechannel remove` | Stop monitoring scores in this server (admins only) |
 | `!/scorechannel show` | Show the currently monitored score channel (admins only) |
@@ -57,6 +61,11 @@ Make sure `.env` exists with at least `TOKEN` and `PREFIX`.
 | `!/dailyreminder time 09:00` | Set the reminder time, UTC 24-hour (admins only) |
 | `!/dailyreminder show` | Show the current reminder settings (admins only) |
 | `!/dailyreminder test` | Preview the daily reminder (plus yesterday's scoreboard) in this channel (admins only) |
+| `!/sync global` | Re-sync the slash command tree with Discord (bot owner only) |
+| `!/unsync global` | Remove the bot's slash commands (bot owner only) |
+
+All commands are hybrid: every command above works both as a slash command
+(`/scores`) and as a prefix command (`!scores`).
 
 ## Local testing
 
