@@ -186,6 +186,59 @@ class Scoreboard(commands.Cog):
         await context.send(embed=embed, silent=True)
 
     # ------------------------------------------------------------------ #
+    # Nuke                                                               #
+    # ------------------------------------------------------------------ #
+
+    @commands.hybrid_command(
+        name="nuke",
+        description="Delete all recorded scores for this server (admins only).",
+    )
+    @commands.guild_only()
+    @commands.has_permissions(manage_guild=True)
+    @app_commands.describe(
+        confirm="Type 'confirm' to permanently delete this server's scores."
+    )
+    async def nuke(self, context: Context, confirm: str = "") -> None:
+        """
+        Delete every recorded score for this server.
+
+        Only this server's leaderboard rows are removed — the monitored
+        score channel and daily reminder settings are kept, and the other
+        servers' scores are untouched.
+
+        Usage:
+            !nuke          — shows what this command does
+            !nuke confirm  — permanently deletes this server's scores
+
+        :param context: The hybrid command context.
+        :param confirm: Must be "confirm" to actually delete.
+        """
+        if confirm.strip().lower() != "confirm":
+            embed = discord.Embed(
+                description=(
+                    "⚠️ This **permanently deletes every recorded score** for "
+                    f"**{context.guild.name}** — today's and all-time "
+                    "leaderboards will start empty.\n\n"
+                    "Channel and reminder settings are kept, and no other "
+                    "server's scores are affected.\n\n"
+                    "Run `/nuke confirm` (or `!nuke confirm`) to proceed."
+                ),
+                color=0xE02B2B,
+            )
+            await context.send(embed=embed, silent=True)
+            return
+
+        deleted = await self.bot.database.delete_guild_scores(context.guild.id)
+        embed = discord.Embed(
+            description=(
+                f"💥 Deleted **{deleted}** score{'s' if deleted != 1 else ''} "
+                f"for **{context.guild.name}**. Leaderboards are now empty."
+            ),
+            color=0xBEBEFE,
+        )
+        await context.send(embed=embed, silent=True)
+
+    # ------------------------------------------------------------------ #
     # Event listeners                                                    #
     # ------------------------------------------------------------------ #
 

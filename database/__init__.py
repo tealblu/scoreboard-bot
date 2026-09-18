@@ -211,6 +211,23 @@ class DatabaseManager:
         )
         await self.connection.commit()
 
+    async def delete_guild_scores(self, guild_id: int) -> int:
+        """
+        Delete every recorded score for the given guild.
+
+        Only ``user_scores`` rows for *guild_id* are removed — channel and
+        reminder settings (``score_channels`` / ``daily_reminders``) are
+        left untouched. Other guilds' scores are unaffected.
+
+        :param guild_id: The guild whose scores to delete.
+        :return: The number of score rows removed.
+        """
+        cursor = await self.connection.execute(
+            "DELETE FROM user_scores WHERE guild_id = ?", (str(guild_id),)
+        )
+        await self.connection.commit()
+        return cursor.rowcount
+
     async def get_scores(
         self,
         guild_id: int,
