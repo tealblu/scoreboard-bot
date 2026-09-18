@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
@@ -17,6 +17,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
+from parsers import build_scoreboard_embed
 from parsers.registry import discover_parsers
 
 if TYPE_CHECKING:
@@ -33,6 +34,9 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
 
     def __init__(self, bot: TrivialBot) -> None:
         self.bot = bot
+        # Parsers are cached once at load time (the scoreboard cog discovers
+        # them the same way); used for the game list and leaderboard sorting.
+        self.parsers = discover_parsers()
 
     # ------------------------------------------------------------------ #
     # Background task                                                    #
@@ -93,8 +97,8 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
                 continue
 
             try:
-                embed = self.build_reminder_embed(channel)
-                await channel.send(embed=embed, silent=True)
+                embeds = await self.build_reminder_embeds(guild.id, channel)
+                await channel.send(embeds=embeds, silent=True)
                 await self.bot.database.mark_reminder_sent(guild.id, today)
                 logger.info(
                     "Sent daily reminder to guild %s in #%s",
@@ -122,7 +126,7 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
         """
         games = [
             parser
-            for parser in discover_parsers()
+            for parser in self.parsers
             if not type(parser).__module__.endswith("example_parser")
         ]
         games.sort(key=lambda parser: parser.game)
@@ -148,6 +152,42 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
         embed.set_footer(text=f"Daily reminder · {_utc_now_label()}")
         return embed
 
+    async def build_yesterday_scoreboard_embed(
+        self, guild_id: int
+    ) -> discord.Embed:
+        """Build the previous day's scoreboard embed for *guild_id*.
+
+        Reuses the shared leaderboard renderer behind ``!scores`` so the
+        morning reminder shows yesterday's standings beside today's game
+        list. An empty board simply reads "No scores recorded yet."
+        """
+        yesterday = _previous_utc_day()
+        records = await self.bot.database.get_scores(
+            guild_id=guild_id, day=yesterday
+        )
+        sort_orders = {parser.game: parser.score_sort for parser in self.parsers}
+        return build_scoreboard_embed(
+            records,
+            day=yesterday,
+            title="📊 Yesterday's Scoreboard",
+            color=0xBEBEFE,
+            sort_orders=sort_orders,
+        )
+
+    async def build_reminder_embeds(
+        self, guild_id: int, channel: discord.abc.GuildChannel
+    ) -> list[discord.Embed]:
+        """The complete daily reminder as a list of embeds.
+
+        The first embed lists today's games; the second shows yesterday's
+        scoreboard. Both the background loop and the ``test`` command send
+        exactly this, so a preview always matches the scheduled message.
+        """
+        return [
+            self.build_reminder_embed(channel),
+            await self.build_yesterday_scoreboard_embed(guild_id),
+        ]
+
     # ------------------------------------------------------------------ #
     # Commands                                                           #
     # ------------------------------------------------------------------ #
@@ -170,7 +210,8 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
                 "`enable` - Enable the daily reminder (posts to the score channel).\n"
                 "`disable` - Disable the daily reminder.\n"
                 "`time` - Set the reminder time (UTC, 24-hour, e.g. `09:00`).\n"
-                "`show` - Show the current reminder settings.",
+                "`show` - Show the current reminder settings.\n"
+                "`test` - Preview the daily reminder in this channel.",
                 color=0xE02B2B,
             )
             await context.send(embed=embed, silent=True)
@@ -323,6 +364,37 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
             color=0xBEBEFE,
         )
         await context.send(embed=embed, silent=True)
+
+    @dailyreminder.command(
+        name="test",
+        description="Preview the daily reminder in this channel.",
+    )
+    @commands.guild_only()
+    @commands.has_permissions(manage_guild=True)
+    async def dailyreminder_test(self, context: Context) -> None:
+        """
+        Send the daily reminder to the current channel, exactly as the
+        scheduled message would look: today's game list plus yesterday's
+        scoreboard.
+
+        The reminder does not get marked as sent, so running this preview
+        will not stop the real reminder from firing at its scheduled time.
+
+        :param context: The hybrid command context.
+        """
+        channel_id = await self.bot.database.get_score_channel(context.guild.id)
+        score_channel = context.guild.get_channel(channel_id) if channel_id else None
+        # Reference the real score channel in the embed when one is set, so
+        # the preview matches the scheduled message; fall back to this
+        # channel when no score channel is configured yet.
+        reference = score_channel or context.channel
+        embeds = await self.build_reminder_embeds(context.guild.id, reference)
+        await context.send(embeds=embeds, silent=True)
+
+
+def _previous_utc_day() -> str:
+    """Yesterday's date as ``YYYY-MM-DD`` (UTC)."""
+    return (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
 
 
 def _utc_now_label() -> str:

@@ -53,6 +53,7 @@ Make sure `.env` exists with at least `TOKEN` and `PREFIX`.
 | `!/dailyreminder disable` | Disable the daily games reminder |
 | `!/dailyreminder time 09:00` | Set the reminder time (UTC, 24-hour) |
 | `!/dailyreminder show` | Show the current reminder settings |
+| `!/dailyreminder test` | Preview the daily reminder (plus yesterday's scoreboard) in this channel |
 
 ## Local testing
 
