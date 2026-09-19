@@ -1,5 +1,3 @@
-# Trivial
-
 <p align="center">
   <img src="resources/triviala.png" alt="Trivial logo" width="150">
 </p>
