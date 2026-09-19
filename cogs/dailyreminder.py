@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import logging
 import re
-from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
@@ -19,6 +18,7 @@ from discord.ext import commands, tasks
 
 from parsers import build_scoreboard_embed
 from parsers.registry import discover_parsers
+from timeutil import bot_tz, now, now_label, yesterday_str
 
 if TYPE_CHECKING:
     from bot import TrivialBot
@@ -27,6 +27,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger("trivial")
 
 _REMINDER_TIME_RE = re.compile(r"^([01]?\d|2[0-3]):([0-5]\d)$")
+
+_TZ_LABEL = str(bot_tz())  # e.g. "UTC" or "America/New_York"
 
 
 class DailyReminder(commands.Cog, name="dailyreminder"):
@@ -52,9 +54,9 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
     @tasks.loop(minutes=1.0)
     async def daily_reminder_loop(self) -> None:
         """Every minute, fire reminders for guilds whose time has come."""
-        now_utc = datetime.now(timezone.utc)
-        current_time = now_utc.strftime("%H:%M")
-        today = now_utc.strftime("%Y-%m-%d")
+        current = now()  # in the bot's target timezone
+        current_time = current.strftime("%H:%M")
+        today = current.strftime("%Y-%m-%d")
 
         for guild in self.bot.guilds:
             try:
@@ -149,7 +151,7 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
             ),
             color=0xBEBEFE,
         )
-        embed.set_footer(text=f"Daily reminder · {_utc_now_label()}")
+        embed.set_footer(text=f"Daily reminder · {now_label()}")
         return embed
 
     async def build_yesterday_scoreboard_embed(
@@ -160,8 +162,9 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
         Reuses the shared leaderboard renderer behind ``!scores`` so the
         morning reminder shows yesterday's standings beside today's game
         list. An empty board simply reads "No scores recorded yet."
+        Yesterday is measured in the bot's target timezone.
         """
-        yesterday = _previous_utc_day()
+        yesterday = yesterday_str()
         records = await self.bot.database.get_scores(
             guild_id=guild_id, day=yesterday
         )
@@ -211,7 +214,7 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
                 "**Subcommands:**\n"
                 "`enable` - Enable the daily reminder (posts to the score channel).\n"
                 "`disable` - Disable the daily reminder.\n"
-                "`time` - Set the reminder time (UTC, 24-hour, e.g. `09:00`).\n"
+                "`time` - Set the reminder time (24-hour, e.g. `09:00`).\n"
                 "`show` - Show the current reminder settings.\n"
                 "`test` - Preview the daily reminder in this channel.",
                 color=0xE02B2B,
@@ -249,7 +252,7 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
         embed = discord.Embed(
             description=(
                 f"Daily reminder enabled in "
-                f"{channel.mention if channel else channel_id} at {reminder_time} UTC."
+                f"{channel.mention if channel else channel_id} at {reminder_time} ({_TZ_LABEL})."
             ),
             color=0xBEBEFE,
         )
@@ -288,23 +291,23 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
 
     @dailyreminder.command(
         name="time",
-        description="Set the daily reminder time (UTC, 24-hour).",
+        description="Set the daily reminder time (24-hour).",
     )
     @app_commands.describe(
-        time="Reminder time in UTC, 24-hour format, e.g. 09:00 or 17:30"
+        time="Reminder time in 24-hour format, e.g. 09:00 or 17:30"
     )
     @commands.has_permissions(manage_guild=True)
     async def dailyreminder_time(self, context: Context, time: str) -> None:
         """
-        Set the daily reminder time in UTC.
+        Set the daily reminder time in the bot's timezone.
 
         :param context: The hybrid command context.
-        :param time: The reminder time, "HH:MM" (UTC, 24-hour).
+        :param time: The reminder time, "HH:MM" (24-hour).
         """
         match = _REMINDER_TIME_RE.match(time.strip())
         if match is None:
             embed = discord.Embed(
-                description="Please use 24-hour UTC time, e.g. `09:00` or `17:30`.",
+                description="Please use 24-hour time, e.g. `09:00` or `17:30`.",
                 color=0xE02B2B,
             )
             await context.send(embed=embed, silent=True)
@@ -319,7 +322,7 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
 
         state = "enabled" if enabled else "saved (reminder is disabled)"
         embed = discord.Embed(
-            description=f"Daily reminder time set to {normalized} UTC ({state}).",
+            description=f"Daily reminder time set to {normalized} ({_TZ_LABEL}) ({state}).",
             color=0xBEBEFE,
         )
         await context.send(embed=embed, silent=True)
@@ -352,7 +355,7 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
 
         lines = [
             f"**Status:** {state}",
-            f"**Time:** {settings['reminder_time']} UTC",
+            f"**Time:** {settings['reminder_time']} ({_TZ_LABEL})",
         ]
         if channel:
             lines.append(f"**Channel:** {channel.mention}")
@@ -393,16 +396,6 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
         reference = score_channel or context.channel
         embeds = await self.build_reminder_embeds(context.guild.id, reference)
         await context.send(embeds=embeds, silent=True)
-
-
-def _previous_utc_day() -> str:
-    """Yesterday's date as ``YYYY-MM-DD`` (UTC)."""
-    return (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
-
-
-def _utc_now_label() -> str:
-    """Short human-friendly UTC date label, e.g. ``2026-09-17 (UTC)``."""
-    return f"{datetime.now(timezone.utc).strftime('%Y-%m-%d')} (UTC)"
 
 
 async def setup(bot: TrivialBot) -> None:

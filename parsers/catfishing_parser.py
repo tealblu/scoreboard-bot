@@ -21,7 +21,7 @@ class CatfishingScoreParser(ScoreParser):
     recorded score (higher is better). The puzzle number (#815) and
     round total are stored in meta; the grid is shown in the embed for
     context. Like other daily games, the score is tied to the day it
-    was posted (UTC).
+    was posted (in the bot's timezone).
     """
 
     game = "catfishing"

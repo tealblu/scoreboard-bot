@@ -20,7 +20,7 @@ class KrillionScoreParser(ScoreParser):
     The second line is the total score and is what gets recorded. The
     puzzle number (#64) is stored in meta and shown in the embed, along
     with the emoji grid for context. Like other daily games, the score
-    is tied to the day it was posted (UTC).
+    is tied to the day it was posted (in the bot's timezone).
     """
 
     game = "krillion"

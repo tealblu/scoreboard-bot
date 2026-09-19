@@ -46,10 +46,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from database import DatabaseManager, migrate_user_scores_schema  # noqa: E402
-from parsers.base import ScoreParser, _utc_today  # noqa: E402
+from parsers.base import ScoreParser  # noqa: E402
 from parsers.dispatch import select_parser  # noqa: E402
 from parsers.registry import discover_parsers  # noqa: E402
 from parsers.scoring import build_scoreboard_embed  # noqa: E402
+from timeutil import today_str  # noqa: E402
 
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
 
@@ -439,7 +440,7 @@ async def amain(args: argparse.Namespace, parsers: list[ScoreParser]) -> None:
         # ── Score leaderboard mode (mirrors !scores command) ──────────
         if args.scores_game is not None:
             game = args.scores_game or None  # "" → None (all games)
-            day = args.day or _utc_today()
+            day = args.day or today_str()
             records = await db.get_scores(guild_id=3000, game=game, day=day)
             sort_orders = {p.game: p.score_sort for p in parsers}
             embed = build_scoreboard_embed(

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import datetime
 
 import discord
+
+from timeutil import now as bot_now
 
 from .base import ScoreParser, ScoreResponse
 
@@ -103,7 +105,7 @@ class MapTapScoreParser(ScoreParser):
     def _parse_date(cls, text: str) -> str | None:
         """Try to parse a date like ``September 17`` into ``YYYY-MM-DD``.
 
-        Uses the current UTC year as a default.
+        Uses the current year in the bot's timezone as a default.
         """
         # Strip any trailing timezone info or stray characters.
         text = text.strip().rstrip(".")
@@ -121,7 +123,8 @@ class MapTapScoreParser(ScoreParser):
         except ValueError:
             return None
 
-        year = datetime.now(timezone.utc).year
+        now = bot_now()
+        year = now.year
         try:
             date = datetime(year, month, day_num)
         except ValueError:
@@ -130,6 +133,6 @@ class MapTapScoreParser(ScoreParser):
         # A date in the future means the share is from an earlier year
         # (e.g. backfilling an old "December 17" message in January) —
         # rewind so it doesn't land on a future day.
-        if date.date() > datetime.now(timezone.utc).date():
+        if date.date() > now.date():
             date = date.replace(year=year - 1)
         return date.strftime("%Y-%m-%d")

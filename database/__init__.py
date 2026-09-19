@@ -115,7 +115,8 @@ class DatabaseManager:
 
         :param server_id: The ID of the server.
         :param enabled: Whether the daily reminder is enabled.
-        :param reminder_time: "HH:MM" in UTC (24-hour).
+        :param reminder_time: "HH:MM" (24-hour) in the bot's target
+            timezone (``TIMEZONE`` env var; UTC by default).
         """
         await self.connection.execute(
             "INSERT INTO daily_reminders(server_id, enabled, reminder_time) "
@@ -158,7 +159,8 @@ class DatabaseManager:
         Record that the daily reminder was sent for *day* so it doesn't re-fire.
 
         :param server_id: The ID of the server.
-        :param day: The date (YYYY-MM-DD) the reminder was sent.
+        :param day: The date (YYYY-MM-DD, bot's target timezone) the
+            reminder was sent.
         """
         await self.connection.execute(
             "UPDATE daily_reminders SET last_fired=? WHERE server_id=?",
@@ -186,7 +188,8 @@ class DatabaseManager:
         :param user_id: The ID of the user who posted the score.
         :param user_name: The user's display name (for logging/embeds).
         :param game: The game identifier, e.g. "wordle" (matches parser.game).
-        :param day: The date this score belongs to, YYYY-MM-DD.
+        :param day: The date this score belongs to, YYYY-MM-DD, in the
+            bot's target timezone (``TIMEZONE`` env var; UTC by default).
         :param score: The numeric score to record.
         :param meta: Optional extra per-game details, stored as JSON.
         """
@@ -243,7 +246,8 @@ class DatabaseManager:
 
         :param guild_id: The guild to query.
         :param game: If given, restrict to this game identifier.
-        :param day: If given, restrict to this date (YYYY-MM-DD).
+        :param day: If given, restrict to this date (YYYY-MM-DD, bot's
+            target timezone).
         """
         from parsers.base import ScoreRecord  # avoid circular at module level
 

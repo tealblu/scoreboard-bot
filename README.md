@@ -19,11 +19,17 @@ a new game is as simple as dropping in a new file that subclasses `ScoreParser`.
    TOKEN=your-bot-token
    PREFIX=!
    ```
-2. Install dependencies:
+2. (Optional) Set the bot's target timezone so scores land on the right
+   days — an IANA name like `America/New_York` or `Asia/Tokyo`:
+   ```
+   TIMEZONE=America/New_York
+   ```
+   When unset the bot uses UTC, which keeps every prior behaviour unchanged.
+3. Install dependencies:
    ```
    python -m pip install -r requirements.txt
    ```
-3. Run trivial:
+4. Run trivial:
    ```
    python bot.py
    ```
@@ -58,7 +64,7 @@ Make sure `.env` exists with at least `TOKEN` and `PREFIX`.
 | `!/backfill` | Scan the score channel's history and record score messages (admins only; `!/backfill 1000` scans more, `0` = all history) |
 | `!/dailyreminder enable` | Enable the daily games reminder (admins only; posts to the score channel) |
 | `!/dailyreminder disable` | Disable the daily games reminder (admins only) |
-| `!/dailyreminder time 09:00` | Set the reminder time, UTC 24-hour (admins only) |
+| `!/dailyreminder time 09:00` | Set the reminder time, 24-hour, in the bot's timezone (admins only) |
 | `!/dailyreminder show` | Show the current reminder settings (admins only) |
 | `!/dailyreminder test` | Preview the daily reminder (plus yesterday's scoreboard) in this channel (admins only) |
 | `!/sync global` | Re-sync the slash command tree with Discord (bot owner only) |

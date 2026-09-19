@@ -9,8 +9,8 @@ from discord import app_commands
 from discord.ext import commands
 
 from parsers import ScoreParser, select_parser, build_scoreboard_embed
-from parsers.base import _utc_today
 from parsers.registry import discover_parsers
+from timeutil import day_string, today_str
 
 if TYPE_CHECKING:
     from bot import TrivialBot
@@ -184,7 +184,7 @@ class Scoreboard(commands.Cog):
         :param day: Optional date (YYYY-MM-DD) to filter by.
         """
         if day is None:
-            day = _utc_today()
+            day = today_str()
 
         records = await context.bot.database.get_scores(
             guild_id=context.guild.id,
@@ -326,7 +326,7 @@ class Scoreboard(commands.Cog):
         scanned = 0
         recorded = 0
         games: dict[str, int] = {}
-        now_day = _utc_today()
+        now_day = today_str()
         # (author, game, day) keys already recorded on this run. History is
         # iterated newest-first, so a duplicate same-day post for the same
         # player/game must NOT overwrite the newer one just seen: skip it.
@@ -344,9 +344,10 @@ class Scoreboard(commands.Cog):
                 # Parsers default the day to "today" when the share text
                 # carries no date (Krillion, Wordle, ...). When backfilling
                 # old messages that's the wrong day — fall back to the
-                # message's own posting date unless the message itself was
-                # posted today (or the parser picked an explicit date).
-                message_day = message.created_at.strftime("%Y-%m-%d")
+                # message's own posting date (in the bot's timezone) unless
+                # the message itself was posted today (or the parser picked
+                # an explicit date).
+                message_day = day_string(message.created_at)
                 if response.day != message_day and response.day == now_day:
                     response.day = message_day
                 key = (message.author.id, parser.game, response.day)

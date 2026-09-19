@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import datetime
 
 import discord
+
+from timeutil import now as bot_now
 
 from .base import ScoreParser, ScoreResponse
 
@@ -139,8 +141,9 @@ class DialedScoreParser(ScoreParser):
     def _parse_date(cls, text: str) -> str | None:
         """Parse a date like ``Sep 18`` into ``YYYY-MM-DD``.
 
-        Uses the current UTC year, rewinding a year if the resulting date
-        is in the future (e.g. a "Dec 31 ..." score posted on Jan 1).
+        Uses the current year in the bot's timezone, rewinding a year if
+        the resulting date is in the future (e.g. a "Dec 31 ..." score
+        posted on Jan 1).
         """
         match = cls._date_re.search(text)
         if match is None:
@@ -154,7 +157,7 @@ class DialedScoreParser(ScoreParser):
         except ValueError:
             return None
 
-        now = datetime.now(timezone.utc)
+        now = bot_now()
         try:
             date = datetime(now.year, month, day_num)
         except ValueError:

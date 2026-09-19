@@ -2,21 +2,24 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Literal
+
+from timeutil import today_str
 
 if TYPE_CHECKING:
     import discord
     from database import DatabaseManager
 
 
-def _utc_today() -> str:
-    """Today's date as ``YYYY-MM-DD`` (UTC).
+def _bot_today() -> str:
+    """Today's date as ``YYYY-MM-DD`` in the bot's target timezone.
 
     Daily games (Wordle, ...) tie every score to the day it was posted,
-    which is how scores are de-duplicated per user per game.
+    which is how scores are de-duplicated per user per game.  The day
+    boundary follows the bot's ``TIMEZONE`` setting, so a score posted
+    just after midnight in that timezone belongs to the new day.
     """
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    return today_str()
 
 
 @dataclass
@@ -38,7 +41,7 @@ class ScoreResponse:
     game: str = ""  # Falls back to the parser's `game` if left unset
     user_id: int | None = None  # Discord user ID of the scorer
     username: str = ""  # Display name, for logging / embeds
-    day: str = field(default_factory=_utc_today)  # YYYY-MM-DD for this score
+    day: str = field(default_factory=_bot_today)  # YYYY-MM-DD (bot's timezone)
     meta: dict[str, str] = field(default_factory=dict)  # e.g. {"number": "1234", "mode": "hard"}
     # Legacy multi-player fallback — most parsers leave this empty.
     scores: dict[str, int] = field(default_factory=dict)
