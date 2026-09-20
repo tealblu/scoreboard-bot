@@ -94,6 +94,14 @@ Simulate different users with an `@Name:userid ::` prefix:
 @Bob:1002 :: Wordle 1,235 X/6
 ```
 
+To also simulate a server nickname that differs from the user's global
+name (the bot prefers the nickname everywhere — leaderboards, embeds):
+
+```
+@Captain:1001 :: Wordle 1,234 4/6                    # nickname == global name
+@Captain~Alice:1001 :: Wordle 1,234 4/6              # nickname "Captain", global name "Alice"
+```
+
 Other flags:
 
 ```

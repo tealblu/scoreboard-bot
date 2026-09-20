@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import discord
 
-from .base import ScoreParser, ScoreResponse
+from .base import ScoreParser, ScoreResponse, message_author_display_name
 
 
 class ExampleScoreParser(ScoreParser):
@@ -27,7 +27,7 @@ class ExampleScoreParser(ScoreParser):
             title="Example Scores",
             score=None,  # TODO: e.g. number of guesses
             user_id=message.author.id,
-            username=message.author.display_name,
+            username=message_author_display_name(message),
             # meta={"number": "1234", "mode": "normal"},
         )
 

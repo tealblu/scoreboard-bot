@@ -99,7 +99,9 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
                 continue
 
             try:
-                embeds = await self.build_reminder_embeds(guild.id, channel)
+                embeds = await self.build_reminder_embeds(
+                    guild.id, channel, guild=guild
+                )
                 await channel.send(embeds=embeds, silent=True)
                 await self.bot.database.mark_reminder_sent(guild.id, today)
                 logger.info(
@@ -155,7 +157,7 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
         return embed
 
     async def build_yesterday_scoreboard_embed(
-        self, guild_id: int
+        self, guild_id: int, guild: discord.Guild | None = None
     ) -> discord.Embed:
         """Build the previous day's scoreboard embed for *guild_id*.
 
@@ -163,6 +165,9 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
         morning reminder shows yesterday's standings beside today's game
         list. An empty board simply reads "No scores recorded yet."
         Yesterday is measured in the bot's target timezone.
+
+        *guild* (optional) lets the renderer use each player's **current
+        server nickname** instead of the name stored with the score.
         """
         yesterday = yesterday_str()
         records = await self.bot.database.get_scores(
@@ -175,10 +180,14 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
             title="📊 Yesterday's Scoreboard",
             color=0xBEBEFE,
             sort_orders=sort_orders,
+            guild=guild,
         )
 
     async def build_reminder_embeds(
-        self, guild_id: int, channel: discord.abc.GuildChannel
+        self,
+        guild_id: int,
+        channel: discord.abc.GuildChannel,
+        guild: discord.Guild | None = None,
     ) -> list[discord.Embed]:
         """The complete daily reminder as a list of embeds.
 
@@ -188,7 +197,7 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
         """
         return [
             self.build_reminder_embed(channel),
-            await self.build_yesterday_scoreboard_embed(guild_id),
+            await self.build_yesterday_scoreboard_embed(guild_id, guild=guild),
         ]
 
     # ------------------------------------------------------------------ #
@@ -394,7 +403,9 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
         # the preview matches the scheduled message; fall back to this
         # channel when no score channel is configured yet.
         reference = score_channel or context.channel
-        embeds = await self.build_reminder_embeds(context.guild.id, reference)
+        embeds = await self.build_reminder_embeds(
+            context.guild.id, reference, guild=context.guild
+        )
         await context.send(embeds=embeds, silent=True)
 
 

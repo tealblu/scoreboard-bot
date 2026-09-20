@@ -7,7 +7,7 @@ import discord
 
 from timeutil import now as bot_now
 
-from .base import ScoreParser, ScoreResponse
+from .base import ScoreParser, ScoreResponse, message_author_display_name
 
 
 class MapTapScoreParser(ScoreParser):
@@ -75,7 +75,7 @@ class MapTapScoreParser(ScoreParser):
             score=score,
             game=self.game,
             user_id=message.author.id,
-            username=message.author.display_name,
+            username=message_author_display_name(message),
         )
 
         if day:

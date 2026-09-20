@@ -4,7 +4,7 @@ import re
 
 import discord
 
-from .base import ScoreParser, ScoreResponse
+from .base import ScoreParser, ScoreResponse, message_author_display_name
 
 
 class KrillionScoreParser(ScoreParser):
@@ -69,7 +69,7 @@ class KrillionScoreParser(ScoreParser):
             score=score,
             game=self.game,
             user_id=message.author.id,
-            username=message.author.display_name,
+            username=message_author_display_name(message),
         )
         if number:
             resp.meta["number"] = number

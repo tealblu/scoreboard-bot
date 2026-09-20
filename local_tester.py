@@ -55,18 +55,30 @@ from timeutil import today_str  # noqa: E402
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
 
 # A line like "@Alice:1001 :: Wordle 1,234 4/6" lets test inputs come from
-# a specific simulated user (name:id). The parser only ever sees the payload.
+# a specific simulated user (display name / nickname:user id). The parser
+# only ever sees the payload.
+#
+# To simulate a server nickname that differs from the user's global name:
+#   @Nickname~Global Name:1001 :: Wordle 1,234 4/6
 _AUTHOR_PREFIX = re.compile(
-    r"^@(?P<name>[^:]+):(?P<uid>\d+)\s*::\s*(?P<content>.*)$"
+    r"^@(?P<nick>[^:~]+)(?:~(?P<name>[^:]+))?:(?P<uid>\d+)\s*::\s*(?P<content>.*)$",
+    re.DOTALL,
 )
 
 
 def split_author(text: str) -> tuple[MockUser | None, str]:
-    """If *text* starts with an author prefix, return (MockUser, payload)."""
+    """If *text* starts with an author prefix, return (MockUser, payload).
+
+    ``@Alice:1001`` simulates a user whose display name is "Alice"; the
+    optional ``@Nick~Name:1001`` form sets a server nickname ("Nick") and
+    a separate global name ("Name"), mirroring discord.py's ``Member``.
+    """
     m = _AUTHOR_PREFIX.match(text)
     if m:
+        nick = m.group("nick")
+        name = m.group("name") or nick
         return (
-            MockUser(name=m.group("name"), uid=int(m.group("uid"))),
+            MockUser(name=name, uid=int(m.group("uid")), nick=nick),
             m.group("content"),
         )
     return None, text
@@ -77,18 +89,28 @@ def split_author(text: str) -> tuple[MockUser | None, str]:
 
 
 class MockUser:
-    """Stand-in for discord.Member / discord.User."""
+    """Stand-in for discord.Member / discord.User.
 
-    def __init__(self, name: str = "TestUser", uid: int = 1000) -> None:
+    Mirrors discord.py: ``display_name`` prefers the server nickname
+    (``nick``) and falls back to the global name (``name``).
+    """
+
+    def __init__(
+        self,
+        name: str = "TestUser",
+        uid: int = 1000,
+        nick: str | None = None,
+    ) -> None:
         self.id = uid
         self.name = name
-        self.display_name = name
+        self.nick = nick
+        self.display_name = nick or name
         self.discriminator = "0000"
         self.bot = False
         self.mention = f"<@{uid}>"
 
     def __str__(self) -> str:
-        return self.name
+        return self.display_name
 
 
 class MockChannel:
@@ -109,11 +131,19 @@ class MockChannel:
 
 
 class MockGuild:
-    """Stand-in for discord.Guild."""
+    """Stand-in for discord.Guild.
+
+    Holds a member cache (``members``) so the same ``guild.get_member``
+    lookup the production bot uses for nickname resolution works here.
+    """
 
     def __init__(self, name: str = "Test Server", gid: int = 3000) -> None:
         self.id = gid
         self.name = name
+        self.members: dict[int, MockUser] = {}
+
+    def get_member(self, user_id: int) -> MockUser | None:
+        return self.members.get(user_id)
 
     def __str__(self) -> str:
         return self.name
@@ -241,6 +271,10 @@ async def run_input(
     """
     author, payload = split_author(text)
     msg = MockMessage(content=payload, author=author)
+    # Register the author in the guild's member cache so nickname
+    # resolution via guild.get_member works exactly like production.
+    if author is not None:
+        msg.guild.members[author.id] = author
 
     # 1. Decide which parser handles this input
     parser = await select_parser(parsers, msg)

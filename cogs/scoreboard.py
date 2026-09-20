@@ -199,7 +199,11 @@ class Scoreboard(commands.Cog):
         )
         sort_orders = {p.game: p.score_sort for p in self.parsers}
         embed = build_scoreboard_embed(
-            records, game=game, day=day, sort_orders=sort_orders
+            records,
+            game=game,
+            day=day,
+            sort_orders=sort_orders,
+            guild=context.guild,
         )
         await context.send(embed=embed, silent=True)
 
@@ -384,8 +388,6 @@ class Scoreboard(commands.Cog):
                 f"Recorded **{recorded}** score(s)"
                 + (f" ({game_list})" if game_list else "")
                 + ".\n"
-                "No embeds were posted. Re-running is safe — same-day "
-                "scores for the same user simply overwrite (newest post wins)."
             ),
             color=0xBEBEFE,
         )

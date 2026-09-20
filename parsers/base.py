@@ -22,6 +22,36 @@ def _bot_today() -> str:
     return today_str()
 
 
+def message_author_display_name(message: "discord.Message") -> str:
+    """Server-nickname-aware display name for a message's author.
+
+    ``discord.Member.display_name`` already prefers the server nickname;
+    the gap is when the author resolves to a plain :class:`discord.User`
+    — REST-fetched messages (e.g. ``!backfill`` history) don't carry
+    member data, so ``message.author`` stays a ``User`` unless the member
+    happens to be in the guild cache. In that case the guild cache is
+    consulted so server nicknames are still respected.
+
+    Falls back to the global name, then the username, then ``""``.
+    """
+    author = getattr(message, "author", None)
+    if author is None:
+        return ""
+    # A Member exposes `.nick`; a plain User does not.
+    if not hasattr(author, "nick"):
+        guild = getattr(message, "guild", None)
+        get_member = getattr(guild, "get_member", None)
+        if get_member is not None:
+            member = get_member(author.id)
+            if member is not None:
+                author = member
+    return (
+        getattr(author, "display_name", None)
+        or getattr(author, "name", None)
+        or ""
+    )
+
+
 @dataclass
 class ScoreResponse:
     """Parsed data for ONE user for ONE game.
@@ -141,7 +171,7 @@ class ScoreParser(ABC):
         await database.record_user_score(
             guild_id=message.guild.id if message.guild else 0,
             user_id=response.user_id or message.author.id,
-            user_name=response.username or message.author.display_name,
+            user_name=response.username or message_author_display_name(message),
             game=self.game,
             day=response.day,
             score=response.score,
