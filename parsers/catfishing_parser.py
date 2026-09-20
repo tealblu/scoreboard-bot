@@ -17,6 +17,13 @@ class CatfishingScoreParser(ScoreParser):
         🐈🐟🐟🐟🐈
         🐈🐟🐟🐈🐟
 
+    The share header may also spell the site out (``catfishing dot net``)::
+
+        catfishing dot net
+        #819 - 8/10 🎉
+        🐈🐈🐈🐈🐈
+        🐟🐈🐈🐟🐈
+
     ``4/10`` is correct guesses out of 10 rounds — the numerator is the
     recorded score (higher is better). The puzzle number (#815) and
     round total are stored in meta; the grid is shown in the embed for
@@ -28,20 +35,26 @@ class CatfishingScoreParser(ScoreParser):
     score_sort = "desc"  # higher score is better
     game_url = "https://catfishing.net"
 
-    # "catfishing.net" — the share URL header.
-    _url_re = re.compile(r"catfishing\.net", re.IGNORECASE)
+    # The share header is the first line and always names the game — either
+    # "catfishing.net" or "catfishing dot net" — so match the word
+    # "catfishing" there instead of the whole URL (the URL suffix varies).
+    _header_re = re.compile(r"\bcatfishing\b", re.IGNORECASE)
     # "#815 - 4/10" — puzzle number and correct/total score.
     _number_re = re.compile(r"#\s*(\d+)")
     _score_re = re.compile(r"(\d+)\s*/\s*(\d+)")
 
     async def can_parse(self, message: discord.Message) -> bool:
-        # Require the URL AND a "#N - X/Y" score line so a bare mention
-        # of the site doesn't match (and can't record a None score).
-        if self._url_re.search(message.content) is None:
+        # The share header is the first line: look for the game name there,
+        # regardless of how the URL is written ("catfishing.net",
+        # "catfishing dot net", ...). Also require a "#N - X/Y" score line,
+        # so a bare mention of the game without a score doesn't match (and
+        # can't record a None score).
+        lines = message.content.strip().splitlines()
+        if not lines or self._header_re.search(lines[0]) is None:
             return False
         return any(
             self._score_re.search(line)
-            for line in message.content.splitlines()
+            for line in lines
         )
 
     async def parse(self, message: discord.Message) -> ScoreResponse:
@@ -67,7 +80,7 @@ class CatfishingScoreParser(ScoreParser):
             for line in lines
             if line.strip()
             and self._score_re.search(line) is None
-            and self._url_re.search(line) is None
+            and self._header_re.search(line) is None
         ]
 
         # -- Build the response --
