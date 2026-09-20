@@ -32,6 +32,13 @@ a new game is as simple as dropping in a new file that subclasses `ScoreParser`.
    python bot.py
    ```
 
+> **Required intents:** enable **Message Content Intent** (reads score
+> messages) and **Server Members Intent** (resolves current server nicknames)
+> under *Bot → Privileged Gateway Intents* in the [Discord Developer
+> Portal](https://discord.com/developers/applications). Without the members
+> intent, players the bot hasn't seen since its last restart may appear on
+> leaderboards under the name they had when the score was recorded.
+
 ### Docker
 
 ```

@@ -75,6 +75,15 @@ Note: the scoreboard feature also requires this intent to read message content f
 """
 intents.message_content = True
 
+# Privileged intent — also enable "Server Members Intent" in the Discord
+# Developer Portal (Applications → your app → Bot → Privileged Gateway
+# Intents). With it, discord.py chunks each guild's members into the cache at
+# startup, so `guild.get_member()` resolves every member's *current* server
+# nickname for leaderboards and the daily scoreboard reminder. Without it,
+# members the bot hasn't seen since restart aren't cached, and the renderer
+# falls back to the (possibly stale) name stored when each score was posted.
+intents.members = True
+
 # Setup both of the loggers
 
 
