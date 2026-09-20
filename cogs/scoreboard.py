@@ -324,8 +324,13 @@ class Scoreboard(commands.Cog):
         )
 
         kwargs: dict = {}
+        # discord.py's history() silently caps at 100 messages by default —
+        # when limit is 0 (or negative) the command promises "all history",
+        # so pass limit=None explicitly to disable that cap.
         if limit > 0:
             kwargs["limit"] = limit
+        else:
+            kwargs["limit"] = None
         if days is not None:
             kwargs["after"] = datetime.now(timezone.utc) - timedelta(days=days)
 
