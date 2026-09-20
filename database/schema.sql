@@ -35,3 +35,12 @@ CREATE TABLE IF NOT EXISTS `user_scores` (
   `created_at` timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`guild_id`, `user_id`, `game`, `day`)
 );
+
+-- Leaderboard queries filter by (guild_id, day) and (guild_id, game, day);
+-- the primary key only helps on the guild_id prefix, so these indexes keep
+-- /scores fast even after a large backfill. Applied on every startup via
+-- executescript, so existing databases get them too.
+CREATE INDEX IF NOT EXISTS `idx_user_scores_guild_day`
+  ON `user_scores` (`guild_id`, `day`);
+CREATE INDEX IF NOT EXISTS `idx_user_scores_guild_game_day`
+  ON `user_scores` (`guild_id`, `game`, `day`);

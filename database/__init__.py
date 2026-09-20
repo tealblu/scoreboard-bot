@@ -52,6 +52,19 @@ async def migrate_user_scores_schema(connection: aiosqlite.Connection) -> None:
     )
     await connection.commit()
 
+    # The rebuild above drops any indexes on user_scores, so re-create the
+    # leaderboard indexes (schema.sql creates them for fresh databases, but
+    # they'd be lost when the old table is dropped and renamed here).
+    await connection.executescript(
+        """
+        CREATE INDEX IF NOT EXISTS `idx_user_scores_guild_day`
+          ON `user_scores` (`guild_id`, `day`);
+        CREATE INDEX IF NOT EXISTS `idx_user_scores_guild_game_day`
+          ON `user_scores` (`guild_id`, `game`, `day`);
+        """
+    )
+    await connection.commit()
+
 
 class DatabaseManager:
     def __init__(self, *, connection: aiosqlite.Connection) -> None:

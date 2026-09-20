@@ -183,6 +183,12 @@ class Scoreboard(commands.Cog):
         :param game: Optional game identifier to filter by.
         :param day: Optional date (YYYY-MM-DD) to filter by.
         """
+        # Ack immediately — the leaderboard query over a large (e.g. freshly
+        # backfilled) table can outlast Discord's 3-second interaction window.
+        # Deferring turns the response into a followup and gives us 15 minutes,
+        # avoiding "Unknown interaction" (10062) errors.
+        await context.defer()
+
         if day is None:
             day = today_str()
 
