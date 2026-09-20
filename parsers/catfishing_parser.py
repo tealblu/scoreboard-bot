@@ -24,6 +24,15 @@ class CatfishingScoreParser(ScoreParser):
         🐈🐈🐈🐈🐈
         🐟🐈🐈🐟🐈
 
+    A comment may precede the share — anything above the header line is
+    ignored::
+
+        easily could have been 8
+        catfishing.net
+        #819 - 5/10
+        🐈🐟🐈🐟🐈
+        🐈🐟🐈🐟🐟
+
     ``4/10`` is correct guesses out of 10 rounds — the numerator is the
     recorded score (higher is better). The puzzle number (#815) and
     round total are stored in meta; the grid is shown in the embed for
@@ -35,52 +44,77 @@ class CatfishingScoreParser(ScoreParser):
     score_sort = "desc"  # higher score is better
     game_url = "https://catfishing.net"
 
-    # The share header is the first line and always names the game — either
-    # "catfishing.net" or "catfishing dot net" — so match the word
-    # "catfishing" there instead of the whole URL (the URL suffix varies).
-    _header_re = re.compile(r"\bcatfishing\b", re.IGNORECASE)
+    # The share header is the FIRST line, alone on that line: either
+    # "catfishing.net" or "catfishing dot net". Anchored to the whole line
+    # (not just the word anywhere) so prose like "…done a catfishing since
+    # 9/17…" never looks like a share.
+    _header_re = re.compile(
+        r"\s*catfishing(?:\s*dot\s*net|\.net)?\s*$", re.IGNORECASE
+    )
     # "#815 - 4/10" — puzzle number and correct/total score.
     _number_re = re.compile(r"#\s*(\d+)")
     _score_re = re.compile(r"(\d+)\s*/\s*(\d+)")
+    # Catfishing shares are always "X/10" — correct guesses out of 10 rounds.
+    # Requiring the total filters out date-like fractions ("since 9/17").
+    _total = "10"
 
     async def can_parse(self, message: discord.Message) -> bool:
-        # The share header is the first line: look for the game name there,
-        # regardless of how the URL is written ("catfishing.net",
-        # "catfishing dot net", ...). Also require a "#N - X/Y" score line,
-        # so a bare mention of the game without a score doesn't match (and
-        # can't record a None score).
+        # The share header is its own whole line — "catfishing.net" or
+        # "catfishing dot net" — and arbitrary prose may precede it (e.g.
+        # "easily could have been 8"). A "X/10" score line must follow the
+        # header. Casual mentions of the game, or a stray date fraction
+        # ("since 9/17"), still can't match.
         lines = message.content.strip().splitlines()
-        if not lines or self._header_re.search(lines[0]) is None:
-            return False
-        return any(
-            self._score_re.search(line)
-            for line in lines
+        header_index = next(
+            (i for i, line in enumerate(lines) if self._header_re.match(line)),
+            None,
         )
+        if header_index is None:
+            return False
+        for line in lines[header_index + 1 :]:
+            m = self._score_re.search(line)
+            if m is not None and m.group(2) == self._total:
+                return True
+        return False
 
     async def parse(self, message: discord.Message) -> ScoreResponse:
         lines = message.content.strip().splitlines()
 
-        # -- Puzzle number --
-        number_match = self._number_re.search(message.content)
-        number = number_match.group(1) if number_match else ""
+        # The share starts at the header line ("catfishing.net" /
+        # "catfishing dot net"); any lines before it are preamble (e.g. a
+        # comment) and are ignored.
+        header_index = next(
+            (i for i, line in enumerate(lines) if self._header_re.match(line)),
+            None,
+        )
+        share_lines = lines[header_index + 1 :] if header_index is not None else lines
 
-        # -- Score: "X/Y" — record the numerator --
+        # -- Puzzle number ("#819 - 5/10") — search the share only, so
+        #    preamble text can't hijack the number --
+        number = ""
+        for line in share_lines:
+            m = self._number_re.search(line)
+            if m:
+                number = m.group(1)
+                break
+
+        # -- Score: "X/10" — record the numerator --
+        # Only a line whose total is the game's 10 rounds counts as the
+        # score (can_parse guarantees at least one follows the header).
         score = None
         total = None
-        for line in lines:
+        for line in share_lines:
             m = self._score_re.search(line)
-            if m:
+            if m is not None and m.group(2) == self._total:
                 score = int(m.group(1))
                 total = m.group(2)
                 break
 
-        # -- Emoji grid for display --
+        # -- Emoji grid for display (after the header, minus the score line) --
         grid_lines = [
             line.strip()
-            for line in lines
-            if line.strip()
-            and self._score_re.search(line) is None
-            and self._header_re.search(line) is None
+            for line in share_lines
+            if line.strip() and self._score_re.search(line) is None
         ]
 
         # -- Build the response --
