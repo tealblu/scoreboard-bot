@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
 
 import discord
 
-from timeutil import now as bot_now
-
 from .base import ScoreParser, ScoreResponse, message_author_display_name
+from .common import parse_month_day
 
 
 class MapTapScoreParser(ScoreParser):
@@ -20,12 +18,6 @@ class MapTapScoreParser(ScoreParser):
     game = "maptap"
     score_sort = "desc"  # higher score is better
     game_url = "https://www.maptap.gg"
-
-    _MONTH_NAMES = {name.lower(): idx for idx, name in enumerate(
-        ["January", "February", "March", "April", "May", "June",
-         "July", "August", "September", "October", "November", "December"],
-        start=1,
-    )}
 
     # Match individual round results like "93🏆" or "87🎓".
     _round_re = re.compile(r"(\d+)\s*([^\s\d]+)")
@@ -54,8 +46,13 @@ class MapTapScoreParser(ScoreParser):
         if lines:
             first = lines[0].strip()
             # Remove the URL prefix to isolate the date text.
-            first = re.sub(r"www\.maptap\.gg\s*", "", first).strip()
-            day = self._parse_date(first)
+            first = re.sub(r"www\.maptap\.gg\s*", "", first).strip().rstrip(".")
+            parts = first.split()
+            if len(parts) == 2:
+                try:
+                    day = parse_month_day(parts[0], int(parts[1]))
+                except ValueError:
+                    day = None
 
         # -- Parse individual round scores --
         rounds: list[str] = []
@@ -90,35 +87,3 @@ class MapTapScoreParser(ScoreParser):
         embed.add_field(name="Score", value=str(score_response.score), inline=True)
         embed.set_footer(text=f"{score_response.username} · {score_response.day}")
         return embed
-
-    # helpers
-    @classmethod
-    def _parse_date(cls, text: str) -> str | None:
-        """Try to parse a date like ``September 17`` into ``YYYY-MM-DD``."""
-        # Strip any trailing timezone info or stray characters.
-        text = text.strip().rstrip(".")
-        parts = text.split()
-        if len(parts) != 2:
-            return None
-
-        month_name, day_str = parts
-        month = cls._MONTH_NAMES.get(month_name.lower())
-        if month is None:
-            return None
-
-        try:
-            day_num = int(day_str)
-        except ValueError:
-            return None
-
-        now = bot_now()
-        year = now.year
-        try:
-            date = datetime(year, month, day_num)
-        except ValueError:
-            return None
-
-        # A date in the future means the share is from an earlier year
-        if date.date() > now.date():
-            date = date.replace(year=year - 1)
-        return date.strftime("%Y-%m-%d")

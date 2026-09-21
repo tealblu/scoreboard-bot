@@ -22,6 +22,7 @@ import logging
 import re
 import sys
 import textwrap
+import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -160,7 +161,7 @@ class MockMessage:
 # ═══════════════════════════════════════════════════════════════════════════
 
 _BAR = "─" * 54
-_DBL  = "═" * 54
+_DBL = "═" * 54
 
 
 def _color_hex(c: discord.Colour | None) -> str:
@@ -277,7 +278,6 @@ async def run_input(
     except Exception as exc:
         print(f"  [!] {type(parser).__name__} raised {type(exc).__name__}: {exc}")
         if verbose:
-            import traceback
             traceback.print_exc()
         return False
 

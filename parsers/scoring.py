@@ -8,16 +8,10 @@ from typing import Callable
 import discord
 
 from .base import ScoreRecord
+from .common import format_score
 
 _SortOrders = dict[str, str]  # game -> "asc" | "desc" (default "asc")
 _DisplayName = Callable[[ScoreRecord], str]  # record -> name to show/sort by
-
-
-def _fmt_score(score: int | float) -> str:
-    """Render a score for the leaderboard: 50.0 → '50', 40.49 → '40.49'."""
-    if isinstance(score, float) and score.is_integer():
-        return str(int(score))
-    return str(score)
 
 
 def _ranked(
@@ -28,7 +22,7 @@ def _ranked(
     """Sort records honoring each game's direction (lower=better by default)."""
     name = display_name or (lambda r: r.user_name)
 
-    def key(r: ScoreRecord) -> tuple[int, str]:
+    def key(r: ScoreRecord) -> tuple[int | float, str]:
         score = r.score
         if orders.get(r.game, "asc") == "desc":
             score = -score
@@ -77,7 +71,7 @@ def build_scoreboard_embed(
             title = f"🏆 {game.title()} — {date_label}"
         ranked = _ranked(records, orders, _display_name)
         lines = [
-            f"**{i}.** {_display_name(r)} — **{_fmt_score(r.score)}**"
+            f"**{i}.** {_display_name(r)} — **{format_score(r.score)}**"
             for i, r in enumerate(ranked, 1)
         ]
         embed = discord.Embed(title=title, description="\n".join(lines), color=color)
@@ -97,7 +91,7 @@ def build_scoreboard_embed(
 
     for game_name in sorted(grouped):
         game_records = _ranked(grouped[game_name], orders, _display_name)
-        lines = [f"{_display_name(r)} — **{_fmt_score(r.score)}**" for r in game_records]
+        lines = [f"{_display_name(r)} — **{format_score(r.score)}**" for r in game_records]
         embed.add_field(name=game_name.title(), value="\n".join(lines), inline=True)
 
     embed.set_footer(

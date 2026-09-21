@@ -9,6 +9,7 @@ class ExampleScoreParser(ScoreParser):
     """Skeleton parser — copy this file to add a REAL game parser."""
 
     game = "example"
+    hidden = True  # skeleton only: keep out of presence/reminder listings
     # game_url = "https://yourgame.example"  # shown in the daily reminder
 
     async def can_parse(self, message: discord.Message) -> bool:
@@ -33,7 +34,4 @@ class ExampleScoreParser(ScoreParser):
             description=score_response.description,
             color=score_response.color,
         )
-        if score_response.scores:
-            for player, score in score_response.scores.items():
-                embed.add_field(name=player, value=str(score), inline=True)
         return embed

@@ -33,13 +33,6 @@ class Scoreboard(commands.Cog):
                 "Registered parser: %s (game: %s)", type(parser).__name__, parser.game
             )
 
-    # parser management
-    def add_parser(self, parser: ScoreParser) -> None:
-        """Manually append a parser instance (for special cases).
-        """
-        self.parsers.append(parser)
-        logger.info("Registered parser: %s", type(parser).__name__)
-
     # channel tracking
 
     async def _get_tracked_channel(self, guild_id: int) -> int | None:
@@ -147,7 +140,12 @@ class Scoreboard(commands.Cog):
         game="Optional game identifier to filter by, e.g. wordle.",
         day="Optional date (YYYY-MM-DD) to filter by.",
     )
-    async def scores(self, context: Context, game: str = None, day: str = None) -> None:
+    async def scores(
+        self,
+        context: Context,
+        game: str | None = None,
+        day: str | None = None,
+    ) -> None:
         """
         Show the score leaderboard for this guild.
 
@@ -283,10 +281,7 @@ class Scoreboard(commands.Cog):
         # discord.py's history() silently caps at 100 messages by default
         # when limit is 0 (or negative) the command promises "all history",
         # so pass limit=None explicitly to disable that cap.
-        if limit > 0:
-            kwargs["limit"] = limit
-        else:
-            kwargs["limit"] = None
+        kwargs["limit"] = limit if limit > 0 else None
         if days is not None:
             kwargs["after"] = datetime.now(timezone.utc) - timedelta(days=days)
 

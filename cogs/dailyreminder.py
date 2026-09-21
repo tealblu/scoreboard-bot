@@ -113,11 +113,7 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
     def build_reminder_embed(self, channel: discord.abc.GuildChannel) -> discord.Embed:
         """List every supported game (with its link) in a Discord embed.
         """
-        games = [
-            parser
-            for parser in self.parsers
-            if not type(parser).__module__.endswith("example_parser")
-        ]
+        games = [parser for parser in self.parsers if not parser.hidden]
         games.sort(key=lambda parser: parser.game)
 
         lines: list[str] = []

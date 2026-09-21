@@ -6,12 +6,12 @@ Description:
 Version: 6.5.0
 """
 
-import json
+from __future__ import annotations
+
 import logging
 import os
 import platform
 import random
-import sys
 
 import aiosqlite
 import discord
@@ -152,7 +152,7 @@ class TrivialBot(commands.Bot):
         - self.bot.logger # In cogs
         """
         self.logger = logger
-        self.database = None
+        self.database: DatabaseManager | None = None
         self.bot_prefix = os.getenv("PREFIX")
 
     async def init_db(self) -> None:
@@ -209,9 +209,7 @@ class TrivialBot(commands.Bot):
         # Game names for the rotating "playing …" presence, skipping the
         # example parser. Cached once so parsers aren't re-discovered each tick.
         self.game_names = [
-            parser.game
-            for parser in discover_parsers()
-            if not type(parser).__module__.endswith("example_parser")
+            parser.game for parser in discover_parsers() if not parser.hidden
         ]
         # Register slash commands with Discord on startup (global scope).
         await self.tree.sync()

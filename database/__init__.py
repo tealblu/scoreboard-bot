@@ -6,9 +6,15 @@ Description:
 Version: 6.5.0
 """
 
+from __future__ import annotations
+
 import json
+from typing import TYPE_CHECKING
 
 import aiosqlite
+
+if TYPE_CHECKING:
+    from parsers.base import ScoreRecord
 
 
 class DatabaseManager:
@@ -25,10 +31,7 @@ class DatabaseManager:
         await self.connection.execute(
             "INSERT INTO score_channels(server_id, channel_id) VALUES (?, ?) "
             "ON CONFLICT(server_id) DO UPDATE SET channel_id=excluded.channel_id",
-            (
-                server_id,
-                channel_id,
-            ),
+            (server_id, channel_id),
         )
         await self.connection.commit()
 
@@ -194,7 +197,7 @@ class DatabaseManager:
         guild_id: int,
         game: str | None = None,
         day: str | None = None,
-    ) -> list:
+    ) -> list[ScoreRecord]:
         """
         Fetch leaderboard rows for a guild, optionally filtered by game and/or day.
 

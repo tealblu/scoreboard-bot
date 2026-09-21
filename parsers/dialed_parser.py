@@ -1,22 +1,11 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
 
 import discord
 
-from timeutil import now as bot_now
-
 from .base import ScoreParser, ScoreResponse, message_author_display_name
-
-_MONTH_ABBR = {
-    name.lower(): idx
-    for idx, name in enumerate(
-        ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-        start=1,
-    )
-}
+from .common import format_score, parse_month_day
 
 
 class DialedScoreParser(ScoreParser):
@@ -69,7 +58,11 @@ class DialedScoreParser(ScoreParser):
                 break
 
         # -- Date from the header line ("Color Daily — Sep 18") --
-        day = self._parse_date(lines[0]) if lines else None
+        day = None
+        if lines:
+            date_match = self._date_re.search(lines[0])
+            if date_match is not None:
+                day = parse_month_day(date_match.group(1), int(date_match.group(2)))
 
         # -- Per-round tiles, e.g. 🟩🟨🟨🟧🟨 (the rest of the score line) --
         tiles = ""
@@ -112,41 +105,6 @@ class DialedScoreParser(ScoreParser):
             color=score_response.color,
         )
         score = score_response.score
-        embed.add_field(name="Score", value=self._fmt(score), inline=True)
+        embed.add_field(name="Score", value=format_score(score), inline=True)
         embed.set_footer(text=f"{score_response.username} · {score_response.day}")
         return embed
-
-    # helpers
-    @staticmethod
-    def _fmt(score: int | float | None) -> str:
-        """Render a score for display: 40.49 → '40.49', 50.0 → '50'."""
-        if score is None:
-            return "—"
-        if isinstance(score, float) and score.is_integer():
-            return str(int(score))
-        return str(score)
-
-    @classmethod
-    def _parse_date(cls, text: str) -> str | None:
-        """Parse a date like ``Sep 18`` into ``YYYY-MM-DD``."""
-        match = cls._date_re.search(text)
-        if match is None:
-            return None
-
-        month = _MONTH_ABBR.get(match.group(1).lower())
-        if month is None:
-            return None
-        try:
-            day_num = int(match.group(2))
-        except ValueError:
-            return None
-
-        now = bot_now()
-        try:
-            date = datetime(now.year, month, day_num)
-        except ValueError:
-            return None
-
-        if date.date() > now.date():
-            date = date.replace(year=now.year - 1)
-        return date.strftime("%Y-%m-%d")

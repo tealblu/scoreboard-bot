@@ -11,11 +11,6 @@ if TYPE_CHECKING:
     from database import DatabaseManager
 
 
-def _bot_today() -> str:
-    """Return today's date as ``YYYY-MM-DD`` in the bot's target timezone."""
-    return today_str()
-
-
 def message_author_display_name(message: "discord.Message") -> str:
     """Return the author's display name, preferring the server nickname."""
     author = getattr(message, "author", None)
@@ -45,14 +40,10 @@ class ScoreResponse:
     game: str = ""  # Falls back to the parser's `game` if left unset
     user_id: int | None = None  # Discord user ID of the scorer
     username: str = ""  # Display name, for logging / embeds
-    day: str = field(default_factory=_bot_today)  # YYYY-MM-DD (bot's timezone)
+    day: str = field(default_factory=today_str)  # YYYY-MM-DD (bot's timezone)
     meta: dict[str, str] = field(default_factory=dict)  # e.g. {"number": "1234", "mode": "hard"}
-    # Legacy multi-player fallback — most parsers leave this empty.
-    scores: dict[str, int] = field(default_factory=dict)
     description: str | None = None
     color: int = 0x2F3136  # Default Discord dark embed color
-    fields: list[tuple[str, str, bool]] = field(default_factory=list)
-    footer: str | None = None
 
 
 @dataclass
@@ -75,6 +66,9 @@ class ScoreParser(ABC):
     score_sort: Literal["asc", "desc"] = "asc"
     # Link to the game's website, shown in the daily reminder.
     game_url: str = ""
+    # Hidden parsers are discovered but excluded from user-facing listings
+    # (e.g. the rotating presence and the daily reminder).
+    hidden: bool = False
 
     @abstractmethod
     async def can_parse(self, message: discord.Message) -> bool:

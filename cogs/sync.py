@@ -4,14 +4,21 @@ with Discord. The bot also auto-syncs on startup, so these exist for when
 I change a command and want to push the new tree without a restart.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import discord
 from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands import Context
 
+if TYPE_CHECKING:
+    from bot import TrivialBot
+
 
 class Sync(commands.Cog, name="sync"):
-    def __init__(self, bot) -> None:
+    def __init__(self, bot: TrivialBot) -> None:
         self.bot = bot
 
     @commands.hybrid_command(
@@ -74,5 +81,5 @@ class Sync(commands.Cog, name="sync"):
         await context.send(embed=embed, silent=True)
 
 
-async def setup(bot) -> None:
+async def setup(bot: TrivialBot) -> None:
     await bot.add_cog(Sync(bot))
