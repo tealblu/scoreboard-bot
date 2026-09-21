@@ -4,7 +4,7 @@ import re
 
 import discord
 
-from .base import ScoreParser, ScoreResponse, message_author_display_name
+from .base import ScoreParser, ScoreResponse
 from .common import parse_month_day
 
 
@@ -56,28 +56,9 @@ class MapTapScoreParser(ScoreParser):
             for match in self._round_re.finditer(line):
                 rounds.append(f"{match.group(1)}{match.group(2)}")
 
-        resp = ScoreResponse(
-            title="MapTap",
-            score=score,
-            game=self.game,
-            user_id=message.author.id,
-            username=message_author_display_name(message),
-        )
-
-        if day:
-            resp.day = day
+        resp = self._build_response(message, title="MapTap", score=score, day=day)
 
         if rounds:
             resp.description = " ".join(rounds)
 
         return resp
-
-    def format_response(self, score_response: ScoreResponse) -> discord.Embed:
-        embed = discord.Embed(
-            title=score_response.title,
-            description=score_response.description,
-            color=score_response.color,
-        )
-        embed.add_field(name="Score", value=str(score_response.score), inline=True)
-        embed.set_footer(text=f"{score_response.username} · {score_response.day}")
-        return embed

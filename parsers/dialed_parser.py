@@ -4,8 +4,8 @@ import re
 
 import discord
 
-from .base import ScoreParser, ScoreResponse, message_author_display_name
-from .common import format_score, parse_month_day
+from .base import ScoreParser, ScoreResponse
+from .common import FRACTION_SCORE_RE, parse_fraction_score, parse_month_day
 
 
 class DialedScoreParser(ScoreParser):
@@ -22,8 +22,6 @@ class DialedScoreParser(ScoreParser):
 
     # The daily share header — everything else dialed posts is ignored.
     _header_re = re.compile(r"Color\s+Daily", re.IGNORECASE)
-    # Score line "40.49/50" (the share URL's s= param has no "/50").
-    _score_re = re.compile(r"(\d+(?:\.\d+)?)\s*/\s*(\d+)")
     # Date inside the header, e.g. "Sep 18".
     _date_re = re.compile(
         r"\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})\b",
@@ -37,10 +35,10 @@ class DialedScoreParser(ScoreParser):
             return False
         # Require the share URL AND a "X/50" score line so a text-only
         # mention of the site doesn't match (and can't record a None score).
-        if "dialed.gg" not in content:
-            return False
-        match = self._score_re.search(content)
-        return match is not None and match.group(2) == "50"
+        return (
+            "dialed.gg" in content
+            and parse_fraction_score(content, "50") is not None
+        )
 
     def parse(self, message: discord.Message) -> ScoreResponse:
         lines = message.content.strip().splitlines()
@@ -49,11 +47,9 @@ class DialedScoreParser(ScoreParser):
         total: str | None = None
         raw_score: str | None = None
         for line in lines:
-            match = self._score_re.search(line)
-            if match:
-                raw_score = match.group(1)
-                total = match.group(2)
-                score = float(raw_score)
+            parsed = parse_fraction_score(line)
+            if parsed is not None:
+                score, raw_score, total = parsed
                 break
 
         day = None
@@ -64,20 +60,14 @@ class DialedScoreParser(ScoreParser):
 
         tiles = ""
         for line in lines:
-            match = self._score_re.search(line)
+            match = FRACTION_SCORE_RE.search(line)
             if match:
-                tiles = self._score_re.sub("", line).strip()
+                tiles = FRACTION_SCORE_RE.sub("", line).strip()
                 break
 
-        resp = ScoreResponse(
-            title="Color Daily",
-            score=score,
-            game=self.game,
-            user_id=message.author.id,
-            username=message_author_display_name(message),
+        resp = self._build_response(
+            message, title="Color Daily", score=score, day=day
         )
-        if day:
-            resp.day = day
         if raw_score:
             resp.meta["score"] = raw_score
         if total:
@@ -92,14 +82,3 @@ class DialedScoreParser(ScoreParser):
         resp.description = "\n".join([header, score_line])
 
         return resp
-
-    def format_response(self, score_response: ScoreResponse) -> discord.Embed:
-        embed = discord.Embed(
-            title=score_response.title,
-            description=score_response.description,
-            color=score_response.color,
-        )
-        score = score_response.score
-        embed.add_field(name="Score", value=format_score(score), inline=True)
-        embed.set_footer(text=f"{score_response.username} · {score_response.day}")
-        return embed

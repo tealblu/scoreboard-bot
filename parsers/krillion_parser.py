@@ -4,7 +4,7 @@ import re
 
 import discord
 
-from .base import ScoreParser, ScoreResponse, message_author_display_name
+from .base import ScoreParser, ScoreResponse
 
 
 class KrillionScoreParser(ScoreParser):
@@ -43,13 +43,7 @@ class KrillionScoreParser(ScoreParser):
             and not self._header_re.search(line)
         ]
 
-        resp = ScoreResponse(
-            title="Krillion",
-            score=score,
-            game=self.game,
-            user_id=message.author.id,
-            username=message_author_display_name(message),
-        )
+        resp = self._build_response(message, title="Krillion", score=score)
         if number:
             resp.meta["number"] = number
 
@@ -57,13 +51,3 @@ class KrillionScoreParser(ScoreParser):
         resp.description = "\n".join([header, *board_lines])
 
         return resp
-
-    def format_response(self, score_response: ScoreResponse) -> discord.Embed:
-        embed = discord.Embed(
-            title=score_response.title,
-            description=score_response.description,
-            color=score_response.color,
-        )
-        embed.add_field(name="Score", value=str(score_response.score), inline=True)
-        embed.set_footer(text=f"{score_response.username} · {score_response.day}")
-        return embed

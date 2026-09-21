@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import discord
 
-from .base import ScoreParser, ScoreResponse, message_author_display_name
+from .base import ScoreParser, ScoreResponse
 
 
 class ExampleScoreParser(ScoreParser):
@@ -18,20 +18,9 @@ class ExampleScoreParser(ScoreParser):
 
     def parse(self, message: discord.Message) -> ScoreResponse:
         # TODO: extract the author's score from the message
-        return ScoreResponse(
-            game=self.game,
+        return self._build_response(
+            message,
             title="Example Scores",
             score=None,  # TODO: e.g. number of guesses
-            user_id=message.author.id,
-            username=message_author_display_name(message),
             # meta={"number": "1234", "mode": "normal"},
         )
-
-    def format_response(self, score_response: ScoreResponse) -> discord.Embed:
-        # TODO: build a rich embed from the parsed data
-        embed = discord.Embed(
-            title=score_response.title,
-            description=score_response.description,
-            color=score_response.color,
-        )
-        return embed
