@@ -34,7 +34,6 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
         self.bot = bot
         self.parsers = discover_parsers()
 
-    # background task
     async def cog_load(self) -> None:
         """Start the reminder loop once the cog is added to the bot."""
         self.daily_reminder_loop.start()
@@ -45,7 +44,7 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
     @tasks.loop(minutes=1.0)
     async def daily_reminder_loop(self) -> None:
         """Every minute, fire reminders for guilds whose time has come."""
-        current = now()  # in the bot's target timezone
+        current = now()
         current_time = current.strftime("%H:%M")
         today = current.strftime("%Y-%m-%d")
 
@@ -64,7 +63,7 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
             if settings["reminder_time"] != current_time:
                 continue
             if settings["last_fired"] == today:
-                continue  # already sent today
+                continue
 
             try:
                 channel_id = await self.bot.database.get_score_channel(guild.id)
@@ -109,7 +108,6 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
     async def before_daily_reminder_loop(self) -> None:
         await self.bot.wait_until_ready()
 
-    # reminder embed
     def build_reminder_embed(self, channel: discord.abc.GuildChannel) -> discord.Embed:
         """List every supported game (with its link) in a Discord embed.
         """
@@ -169,7 +167,6 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
             await self.build_yesterday_scoreboard_embed(guild_id, guild=guild),
         ]
 
-    # commands
     @commands.hybrid_group(
         name="dailyreminder",
         description="Manage the daily games reminder.",

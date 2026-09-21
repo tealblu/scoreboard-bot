@@ -45,7 +45,6 @@ class DialedScoreParser(ScoreParser):
     async def parse(self, message: discord.Message) -> ScoreResponse:
         lines = message.content.strip().splitlines()
 
-        # -- Exact score and total from the "X/50" line --
         score: float | None = None
         total: str | None = None
         raw_score: str | None = None
@@ -57,14 +56,12 @@ class DialedScoreParser(ScoreParser):
                 score = float(raw_score)
                 break
 
-        # -- Date from the header line ("Color Daily — Sep 18") --
         day = None
         if lines:
             date_match = self._date_re.search(lines[0])
             if date_match is not None:
                 day = parse_month_day(date_match.group(1), int(date_match.group(2)))
 
-        # -- Per-round tiles, e.g. 🟩🟨🟨🟧🟨 (the rest of the score line) --
         tiles = ""
         for line in lines:
             match = self._score_re.search(line)
@@ -72,7 +69,6 @@ class DialedScoreParser(ScoreParser):
                 tiles = self._score_re.sub("", line).strip()
                 break
 
-        # -- Build the response --
         resp = ScoreResponse(
             title="Color Daily",
             score=score,
@@ -89,7 +85,6 @@ class DialedScoreParser(ScoreParser):
         if tiles:
             resp.meta["tiles"] = tiles
 
-        # Echo the share verbatim (header + score line) in the embed.
         header = lines[0].strip() if lines else "Color Daily"
         score_line = " ".join(
             part for part in (f"{raw_score or ''}/{total or ''}".rstrip("/"), tiles) if part

@@ -60,12 +60,11 @@ def build_scoreboard_embed(
             color=color,
         )
 
-    # Date label for the title
     date_label = day or (
         records[0].day if len(set(r.day for r in records)) == 1 else "all time"
     )
 
-    # ── Single-game view ──────────────────────────────────────────────
+    # Single-game view
     if game:
         if not title:
             title = f"🏆 {game.title()} — {date_label}"
@@ -80,7 +79,7 @@ def build_scoreboard_embed(
         )
         return embed
 
-    # ── Multi-game view — one field per game ──────────────────────────
+    # Multi-game view: one field per game
     if not title:
         title = f"🏆 Scores — {date_label}"
     embed = discord.Embed(title=title, color=color)

@@ -84,18 +84,14 @@ intents.message_content = True
 # falls back to the (possibly stale) name stored when each score was posted.
 intents.members = True
 
-# Setup both of the loggers
-
 
 class LoggingFormatter(logging.Formatter):
-    # Colors
     black = "\x1b[30m"
     red = "\x1b[31m"
     green = "\x1b[32m"
     yellow = "\x1b[33m"
     blue = "\x1b[34m"
     gray = "\x1b[38m"
-    # Styles
     reset = "\x1b[0m"
     bold = "\x1b[1m"
 
@@ -121,17 +117,15 @@ class LoggingFormatter(logging.Formatter):
 logger = logging.getLogger("trivial")
 logger.setLevel(logging.INFO)
 
-# Console handler
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(LoggingFormatter())
-# File handler
+
 file_handler = logging.FileHandler(filename=DISCORD_LOG_PATH, encoding="utf-8", mode="w")
 file_handler_formatter = logging.Formatter(
     "[{asctime}] [{levelname:<8}] {name}: {message}", "%Y-%m-%d %H:%M:%S", style="{"
 )
 file_handler.setFormatter(file_handler_formatter)
 
-# Add the handlers
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 

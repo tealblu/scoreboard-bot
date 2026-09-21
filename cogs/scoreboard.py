@@ -26,14 +26,11 @@ class Scoreboard(commands.Cog):
         self.bot = bot
         self._tracked_channels: dict[int, int] = {}  # guild_id -> channel_id
 
-        # parsers are auto-discovered from parsers directory
         self.parsers: list[ScoreParser] = discover_parsers()
         for parser in self.parsers:
             logger.info(
                 "Registered parser: %s (game: %s)", type(parser).__name__, parser.game
             )
-
-    # channel tracking
 
     async def _get_tracked_channel(self, guild_id: int) -> int | None:
         """Return the monitored channel ID for *guild_id*, or None.
@@ -43,8 +40,6 @@ class Scoreboard(commands.Cog):
                 await self.bot.database.get_score_channel(guild_id)
             )
         return self._tracked_channels[guild_id]
-
-    # commands
 
     @commands.hybrid_group(
         name="scorechannel",
@@ -129,7 +124,6 @@ class Scoreboard(commands.Cog):
             )
         await context.send(embed=embed, silent=True)
 
-    # score queries
     @commands.hybrid_command(
         name="scores",
         description="Show the score leaderboard.",
@@ -178,7 +172,6 @@ class Scoreboard(commands.Cog):
         )
         await context.send(embed=embed, silent=True)
 
-    # db nuke
     @commands.hybrid_command(
         name="nuke",
         description="Delete all recorded scores for this server (admins only).",
@@ -222,7 +215,6 @@ class Scoreboard(commands.Cog):
         )
         await context.send(embed=embed, silent=True)
 
-    # backfill
     @commands.hybrid_command(
         name="backfill",
         description="Record score messages from the score channel's history.",
@@ -331,30 +323,24 @@ class Scoreboard(commands.Cog):
         )
         await context.send(embed=embed, silent=True)
 
-    # listeners
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
-        # Ignore bots and DMs
         if message.author.bot or not message.guild:
             return
 
-        # Only parse messages in the configured channel
         tracked_channel = await self._get_tracked_channel(message.guild.id)
         if tracked_channel is None or message.channel.id != tracked_channel:
             return
 
-        # 1. Decide which parser handles this message (one parser per game)
         parser = await select_parser(self.parsers, message)
         if parser is None:
             return
 
         try:
-            # 2. Extract the user's score for that game
             score_response = await parser.parse(message)
-            # 3. Persist ONE score for the game BEFORE posting, so a daily
-            #    result is never lost even if the embed fails.
+            # Persist before posting so a daily result is never lost if the
+            # embed fails.
             await parser.record_score(message, score_response, self.bot.database)
-            # 4. Post the formatted result to the channel
             embed = await parser.format_response(score_response)
             await message.channel.send(embed=embed, silent=True)
             logger.info(

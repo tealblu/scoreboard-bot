@@ -33,7 +33,6 @@ class MapTapScoreParser(ScoreParser):
     async def parse(self, message: discord.Message) -> ScoreResponse:
         lines = message.content.strip().splitlines()
 
-        # -- Parse the total score --
         score = None
         for line in reversed(lines):
             m = re.search(r"Final score:\s*(\d+)", line, re.IGNORECASE)
@@ -41,11 +40,9 @@ class MapTapScoreParser(ScoreParser):
                 score = int(m.group(1))
                 break
 
-        # -- Parse the date from the first line --
         day = None
         if lines:
             first = lines[0].strip()
-            # Remove the URL prefix to isolate the date text.
             first = re.sub(r"www\.maptap\.gg\s*", "", first).strip().rstrip(".")
             parts = first.split()
             if len(parts) == 2:
@@ -54,13 +51,11 @@ class MapTapScoreParser(ScoreParser):
                 except ValueError:
                     day = None
 
-        # -- Parse individual round scores --
         rounds: list[str] = []
         for line in lines:
             for match in self._round_re.finditer(line):
                 rounds.append(f"{match.group(1)}{match.group(2)}")
 
-        # -- Build the response --
         resp = ScoreResponse(
             title="MapTap",
             score=score,
@@ -72,7 +67,6 @@ class MapTapScoreParser(ScoreParser):
         if day:
             resp.day = day
 
-        # Show round breakdown in the embed.
         if rounds:
             resp.description = " ".join(rounds)
 

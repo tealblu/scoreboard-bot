@@ -49,7 +49,6 @@ class CatfishingScoreParser(ScoreParser):
         )
         share_lines = lines[header_index + 1 :] if header_index is not None else lines
 
-        # -- Puzzle number from the share lines --
         number = ""
         for line in share_lines:
             m = self._number_re.search(line)
@@ -57,7 +56,6 @@ class CatfishingScoreParser(ScoreParser):
                 number = m.group(1)
                 break
 
-        # -- Score: the "X/10" line, recording the numerator --
         score = None
         total = None
         for line in share_lines:
@@ -67,14 +65,12 @@ class CatfishingScoreParser(ScoreParser):
                 total = m.group(2)
                 break
 
-        # -- Emoji grid for display (after the header, minus the score line) --
         grid_lines = [
             line.strip()
             for line in share_lines
             if line.strip() and self._score_re.search(line) is None
         ]
 
-        # -- Build the response --
         resp = ScoreResponse(
             title="Catfishing",
             score=score,
@@ -87,7 +83,6 @@ class CatfishingScoreParser(ScoreParser):
         if total:
             resp.meta["total"] = total
 
-        # Show puzzle number + score ratio + emoji grid in the embed.
         header = f"#{number} · {score}/{total}" if number else f"{score}/{total}"
         resp.description = "\n".join([header, *grid_lines])
 

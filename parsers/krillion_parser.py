@@ -26,11 +26,9 @@ class KrillionScoreParser(ScoreParser):
     async def parse(self, message: discord.Message) -> ScoreResponse:
         lines = message.content.strip().splitlines()
 
-        # -- Puzzle number from the header line --
         header_match = self._header_re.search(message.content)
         number = header_match.group(1) if header_match else ""
 
-        # -- Total score: the first standalone numeric line --
         score = None
         for line in lines:
             stripped = line.strip()
@@ -38,7 +36,6 @@ class KrillionScoreParser(ScoreParser):
                 score = int(stripped)
                 break
 
-        # -- Emoji grid for display --
         board_lines = [
             line.strip()
             for line in lines
@@ -46,7 +43,6 @@ class KrillionScoreParser(ScoreParser):
             and not self._header_re.search(line)
         ]
 
-        # -- Build the response --
         resp = ScoreResponse(
             title="Krillion",
             score=score,
@@ -57,7 +53,6 @@ class KrillionScoreParser(ScoreParser):
         if number:
             resp.meta["number"] = number
 
-        # Show puzzle number + emoji grid in the embed.
         header = f"Krillion #{number}" if number else "Krillion"
         resp.description = "\n".join([header, *board_lines])
 

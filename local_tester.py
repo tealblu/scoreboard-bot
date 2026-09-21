@@ -69,9 +69,7 @@ def split_author(text: str) -> tuple[MockUser | None, str]:
         )
     return None, text
 
-# ═══════════════════════════════════════════════════════════════════════════
 # Mock Discord objects — lightweight stand-ins so parsers never need the bot
-# ═══════════════════════════════════════════════════════════════════════════
 
 
 class MockUser:
@@ -156,9 +154,7 @@ class MockMessage:
         self.reference: object | None = None
 
 
-# ═══════════════════════════════════════════════════════════════════════════
 # Embed → terminal renderer
-# ═══════════════════════════════════════════════════════════════════════════
 
 _BAR = "─" * 54
 _DBL = "═" * 54
@@ -230,9 +226,7 @@ def render_embed(embed: discord.Embed) -> str:
     return "\n".join(parts)
 
 
-# ═══════════════════════════════════════════════════════════════════════════
 # Parser pipeline — mirrors cogs/scoreboard.py exactly
-# ═══════════════════════════════════════════════════════════════════════════
 
 
 async def run_input(
@@ -282,9 +276,7 @@ async def run_input(
         return False
 
 
-# ═══════════════════════════════════════════════════════════════════════════
 # Local database + input modes
-# ═══════════════════════════════════════════════════════════════════════════
 
 
 async def open_db(path: Path) -> DatabaseManager:
@@ -369,9 +361,7 @@ async def interactive_mode(
         print()
 
 
-# ═══════════════════════════════════════════════════════════════════════════
 # CLI
-# ═══════════════════════════════════════════════════════════════════════════
 
 
 def build_cli() -> argparse.ArgumentParser:
