@@ -1,5 +1,4 @@
-"""Message → parser dispatch.
-"""
+"""Message → parser dispatch."""
 
 from __future__ import annotations
 
@@ -14,14 +13,14 @@ if TYPE_CHECKING:
 logger = logging.getLogger("trivial")
 
 
-async def select_parser(
+def select_parser(
     parsers: list[ScoreParser],
     message: discord.Message,
 ) -> ScoreParser | None:
     """Return the parser that should handle the message, or None."""
     for parser in parsers:
         try:
-            if await parser.can_parse(message):
+            if parser.can_parse(message):
                 return parser
         except Exception:
             logger.exception(

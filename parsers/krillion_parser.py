@@ -17,13 +17,13 @@ class KrillionScoreParser(ScoreParser):
     # Matches "Krillion #64" — the puzzle number.
     _header_re = re.compile(r"Krillion\s*#\s*(\d+)", re.IGNORECASE)
 
-    async def can_parse(self, message: discord.Message) -> bool:
+    def can_parse(self, message: discord.Message) -> bool:
         # Require the "Krillion #N" header and a standalone numeric score line.
         if self._header_re.search(message.content) is None:
             return False
         return any(line.strip().isdigit() for line in message.content.splitlines())
 
-    async def parse(self, message: discord.Message) -> ScoreResponse:
+    def parse(self, message: discord.Message) -> ScoreResponse:
         lines = message.content.strip().splitlines()
 
         header_match = self._header_re.search(message.content)
@@ -58,7 +58,7 @@ class KrillionScoreParser(ScoreParser):
 
         return resp
 
-    async def format_response(self, score_response: ScoreResponse) -> discord.Embed:
+    def format_response(self, score_response: ScoreResponse) -> discord.Embed:
         embed = discord.Embed(
             title=score_response.title,
             description=score_response.description,

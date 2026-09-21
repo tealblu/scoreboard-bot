@@ -1,5 +1,4 @@
-"""Daily games reminder.
-"""
+"""Daily games reminder."""
 
 from __future__ import annotations
 
@@ -109,8 +108,7 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
         await self.bot.wait_until_ready()
 
     def build_reminder_embed(self, channel: discord.abc.GuildChannel) -> discord.Embed:
-        """List every supported game (with its link) in a Discord embed.
-        """
+        """List every supported game (with its link) in a Discord embed."""
         games = [parser for parser in self.parsers if not parser.hidden]
         games.sort(key=lambda parser: parser.game)
 
@@ -138,8 +136,7 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
     async def build_yesterday_scoreboard_embed(
         self, guild_id: int, guild: discord.Guild | None = None
     ) -> discord.Embed:
-        """Build the previous day's scoreboard embed for *guild_id*.
-        """
+        """Build the previous day's scoreboard embed for *guild_id*."""
         yesterday = yesterday_str()
         records = await self.bot.database.get_scores(
             guild_id=guild_id, day=yesterday
@@ -160,8 +157,7 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
         channel: discord.abc.GuildChannel,
         guild: discord.Guild | None = None,
     ) -> list[discord.Embed]:
-        """The complete daily reminder as a list of embeds.
-        """
+        """The complete daily reminder as a list of embeds."""
         return [
             self.build_reminder_embed(channel),
             await self.build_yesterday_scoreboard_embed(guild_id, guild=guild),

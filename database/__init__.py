@@ -31,7 +31,7 @@ class DatabaseManager:
         await self.connection.execute(
             "INSERT INTO score_channels(server_id, channel_id) VALUES (?, ?) "
             "ON CONFLICT(server_id) DO UPDATE SET channel_id=excluded.channel_id",
-            (server_id, channel_id),
+            (str(server_id), str(channel_id)),
         )
         await self.connection.commit()
 
@@ -44,7 +44,7 @@ class DatabaseManager:
         """
         rows = await self.connection.execute(
             "SELECT channel_id FROM score_channels WHERE server_id=?",
-            (server_id,),
+            (str(server_id),),
         )
         async with rows as cursor:
             result = await cursor.fetchone()
@@ -58,7 +58,7 @@ class DatabaseManager:
         """
         await self.connection.execute(
             "DELETE FROM score_channels WHERE server_id=?",
-            (server_id,),
+            (str(server_id),),
         )
         await self.connection.commit()
 
@@ -137,7 +137,7 @@ class DatabaseManager:
         game: str,
         day: str,
         score: int | float | None,
-        meta: dict | None = None,
+        meta: dict[str, str] | None = None,
     ) -> None:
         """
         Log one user's score for one game on one day.
@@ -213,7 +213,7 @@ class DatabaseManager:
         from parsers.base import ScoreRecord  # avoid circular at module level
 
         conditions = ["guild_id = ?"]
-        params: list = [str(guild_id)]
+        params: list[str] = [str(guild_id)]
         if game:
             conditions.append("game = ?")
             params.append(game)

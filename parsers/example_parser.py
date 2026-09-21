@@ -12,11 +12,11 @@ class ExampleScoreParser(ScoreParser):
     hidden = True  # skeleton only: keep out of presence/reminder listings
     # game_url = "https://yourgame.example"  # shown in the daily reminder
 
-    async def can_parse(self, message: discord.Message) -> bool:
+    def can_parse(self, message: discord.Message) -> bool:
         # TODO: check message.content against this game's expected format
         return False
 
-    async def parse(self, message: discord.Message) -> ScoreResponse:
+    def parse(self, message: discord.Message) -> ScoreResponse:
         # TODO: extract the author's score from the message
         return ScoreResponse(
             game=self.game,
@@ -27,7 +27,7 @@ class ExampleScoreParser(ScoreParser):
             # meta={"number": "1234", "mode": "normal"},
         )
 
-    async def format_response(self, score_response: ScoreResponse) -> discord.Embed:
+    def format_response(self, score_response: ScoreResponse) -> discord.Embed:
         # TODO: build a rich embed from the parsed data
         embed = discord.Embed(
             title=score_response.title,

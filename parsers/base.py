@@ -4,31 +4,24 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal
 
+import discord
+
 from timeutil import today_str
 
 if TYPE_CHECKING:
-    import discord
     from database import DatabaseManager
 
 
-def message_author_display_name(message: "discord.Message") -> str:
+def message_author_display_name(message: discord.Message) -> str:
     """Return the author's display name, preferring the server nickname."""
-    author = getattr(message, "author", None)
-    if author is None:
-        return ""
-    # A Member exposes `.nick`; a plain User does not.
-    if not hasattr(author, "nick"):
-        guild = getattr(message, "guild", None)
-        get_member = getattr(guild, "get_member", None)
-        if get_member is not None:
-            member = get_member(author.id)
-            if member is not None:
-                author = member
-    return (
-        getattr(author, "display_name", None)
-        or getattr(author, "name", None)
-        or ""
-    )
+    author = message.author
+    # A Member exposes the per-server nickname; a plain User does not, so
+    # fall back to the cached member to pick up nicknames like production does.
+    if not isinstance(author, discord.Member) and message.guild is not None:
+        member = message.guild.get_member(author.id)
+        if member is not None:
+            author = member
+    return author.display_name or author.name
 
 
 @dataclass
@@ -71,17 +64,17 @@ class ScoreParser(ABC):
     hidden: bool = False
 
     @abstractmethod
-    async def can_parse(self, message: discord.Message) -> bool:
+    def can_parse(self, message: discord.Message) -> bool:
         """Return True if the message matches this game's score format."""
         ...
 
     @abstractmethod
-    async def parse(self, message: discord.Message) -> ScoreResponse:
+    def parse(self, message: discord.Message) -> ScoreResponse:
         """Extract the author's score and return a ScoreResponse."""
         ...
 
     @abstractmethod
-    async def format_response(self, score_response: ScoreResponse) -> discord.Embed:
+    def format_response(self, score_response: ScoreResponse) -> discord.Embed:
         """Turn the score response into a Discord embed ready to send."""
         ...
 

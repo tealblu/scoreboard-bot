@@ -33,8 +33,7 @@ class Scoreboard(commands.Cog):
             )
 
     async def _get_tracked_channel(self, guild_id: int) -> int | None:
-        """Return the monitored channel ID for *guild_id*, or None.
-        """
+        """Return the monitored channel ID for *guild_id*, or None."""
         if guild_id not in self._tracked_channels:
             self._tracked_channels[guild_id] = (
                 await self.bot.database.get_score_channel(guild_id)
@@ -127,7 +126,6 @@ class Scoreboard(commands.Cog):
     @commands.hybrid_command(
         name="scores",
         description="Show the score leaderboard.",
-        help="Show the score leaderboard.",
     )
     @commands.guild_only()
     @app_commands.describe(
@@ -288,10 +286,10 @@ class Scoreboard(commands.Cog):
                 continue
             scanned += 1
             try:
-                parser = await select_parser(self.parsers, message)
+                parser = select_parser(self.parsers, message)
                 if parser is None:
                     continue
-                response = await parser.parse(message)
+                response = parser.parse(message)
                 message_day = day_string(message.created_at)
                 if response.day != message_day and response.day == now_day:
                     response.day = message_day
@@ -332,16 +330,16 @@ class Scoreboard(commands.Cog):
         if tracked_channel is None or message.channel.id != tracked_channel:
             return
 
-        parser = await select_parser(self.parsers, message)
+        parser = select_parser(self.parsers, message)
         if parser is None:
             return
 
         try:
-            score_response = await parser.parse(message)
+            score_response = parser.parse(message)
             # Persist before posting so a daily result is never lost if the
             # embed fails.
             await parser.record_score(message, score_response, self.bot.database)
-            embed = await parser.format_response(score_response)
+            embed = parser.format_response(score_response)
             await message.channel.send(embed=embed, silent=True)
             logger.info(
                 "Recorded %s score for %s in #%s using %s",

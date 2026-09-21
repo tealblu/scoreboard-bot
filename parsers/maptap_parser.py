@@ -22,7 +22,7 @@ class MapTapScoreParser(ScoreParser):
     # Match individual round results like "93🏆" or "87🎓".
     _round_re = re.compile(r"(\d+)\s*([^\s\d]+)")
 
-    async def can_parse(self, message: discord.Message) -> bool:
+    def can_parse(self, message: discord.Message) -> bool:
         # Require the URL AND a "Final score:" line so casual mentions of
         # the site (without an actual score) don't match this parser.
         return (
@@ -30,7 +30,7 @@ class MapTapScoreParser(ScoreParser):
             and re.search(r"Final score:\s*\d+", message.content, re.IGNORECASE) is not None
         )
 
-    async def parse(self, message: discord.Message) -> ScoreResponse:
+    def parse(self, message: discord.Message) -> ScoreResponse:
         lines = message.content.strip().splitlines()
 
         score = None
@@ -72,7 +72,7 @@ class MapTapScoreParser(ScoreParser):
 
         return resp
 
-    async def format_response(self, score_response: ScoreResponse) -> discord.Embed:
+    def format_response(self, score_response: ScoreResponse) -> discord.Embed:
         embed = discord.Embed(
             title=score_response.title,
             description=score_response.description,

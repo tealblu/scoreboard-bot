@@ -24,7 +24,7 @@ class CatfishingScoreParser(ScoreParser):
     # "X/10" — correct guesses out of 10 rounds; requiring the total filters dates.
     _total = "10"
 
-    async def can_parse(self, message: discord.Message) -> bool:
+    def can_parse(self, message: discord.Message) -> bool:
         # The header line must be followed by an "X/10" score line.
         lines = message.content.strip().splitlines()
         header_index = next(
@@ -39,7 +39,7 @@ class CatfishingScoreParser(ScoreParser):
                 return True
         return False
 
-    async def parse(self, message: discord.Message) -> ScoreResponse:
+    def parse(self, message: discord.Message) -> ScoreResponse:
         lines = message.content.strip().splitlines()
 
         # Lines before the share header are preamble and are ignored.
@@ -88,7 +88,7 @@ class CatfishingScoreParser(ScoreParser):
 
         return resp
 
-    async def format_response(self, score_response: ScoreResponse) -> discord.Embed:
+    def format_response(self, score_response: ScoreResponse) -> discord.Embed:
         embed = discord.Embed(
             title=score_response.title,
             description=score_response.description,

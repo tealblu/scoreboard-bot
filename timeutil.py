@@ -75,4 +75,4 @@ def day_string(value: datetime) -> str:
 
 def now_label() -> str:
     """Short human-friendly date label, e.g. ``2026-09-19 (America/New_York)``."""
-    return f"{today_str()} ({str(TARGET_TZ)})"
+    return f"{today_str()} ({str(bot_tz())})"

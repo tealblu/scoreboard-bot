@@ -30,7 +30,7 @@ class DialedScoreParser(ScoreParser):
         re.IGNORECASE,
     )
 
-    async def can_parse(self, message: discord.Message) -> bool:
+    def can_parse(self, message: discord.Message) -> bool:
         content = message.content
         # Only the Color Daily share — other dialed games/modes never match.
         if self._header_re.search(content) is None:
@@ -42,7 +42,7 @@ class DialedScoreParser(ScoreParser):
         match = self._score_re.search(content)
         return match is not None and match.group(2) == "50"
 
-    async def parse(self, message: discord.Message) -> ScoreResponse:
+    def parse(self, message: discord.Message) -> ScoreResponse:
         lines = message.content.strip().splitlines()
 
         score: float | None = None
@@ -93,7 +93,7 @@ class DialedScoreParser(ScoreParser):
 
         return resp
 
-    async def format_response(self, score_response: ScoreResponse) -> discord.Embed:
+    def format_response(self, score_response: ScoreResponse) -> discord.Embed:
         embed = discord.Embed(
             title=score_response.title,
             description=score_response.description,

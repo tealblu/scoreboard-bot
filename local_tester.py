@@ -73,8 +73,7 @@ def split_author(text: str) -> tuple[MockUser | None, str]:
 
 
 class MockUser:
-    """Stand-in for discord.Member / discord.User.
-    """
+    """Stand-in for discord.Member / discord.User."""
 
     def __init__(
         self,
@@ -112,8 +111,7 @@ class MockChannel:
 
 
 class MockGuild:
-    """Stand-in for discord.Guild.
-    """
+    """Stand-in for discord.Guild."""
 
     def __init__(self, name: str = "Test Server", gid: int = 3000) -> None:
         self.id = gid
@@ -128,8 +126,7 @@ class MockGuild:
 
 
 class MockMessage:
-    """Stand-in for discord.Message.
-    """
+    """Stand-in for discord.Message."""
 
     def __init__(
         self,
@@ -185,12 +182,11 @@ def render_embed(embed: discord.Embed) -> str:
             parts.append(textwrap.indent(textwrap.fill(line, 50), "  "))
 
     # Author
-    author = getattr(embed, "author", None)
-    if author and getattr(author, "name", None):
+    if embed.author and embed.author.name:
         parts.append(_BAR)
-        parts.append(f"  Author: {author.name}")
-        if getattr(author, "url", None):
-            parts.append(f"         {author.url}")
+        parts.append(f"  Author: {embed.author.name}")
+        if embed.author.url:
+            parts.append(f"         {embed.author.url}")
 
     # Color
     if embed.color and embed.color.value:
@@ -206,21 +202,17 @@ def render_embed(embed: discord.Embed) -> str:
             parts.append(textwrap.indent(textwrap.fill(line, 48), "    "))
 
     # Footer
-    footer_obj = getattr(embed, "footer", None)
-    footer_text = getattr(footer_obj, "text", None) if footer_obj else None
-    if footer_text:
+    if embed.footer and embed.footer.text:
         parts.append(_BAR)
-        parts.append(f"  Footer: {footer_text}")
+        parts.append(f"  Footer: {embed.footer.text}")
 
     # Image / Thumbnail
-    img = getattr(embed, "image", None)
-    if img and getattr(img, "url", None):
+    if embed.image and embed.image.url:
         parts.append(_BAR)
-        parts.append(f"  Image: {img.url}")
-    thumb = getattr(embed, "thumbnail", None)
-    if thumb and getattr(thumb, "url", None):
+        parts.append(f"  Image: {embed.image.url}")
+    if embed.thumbnail and embed.thumbnail.url:
         parts.append(_BAR)
-        parts.append(f"  Thumbnail: {thumb.url}")
+        parts.append(f"  Thumbnail: {embed.thumbnail.url}")
 
     parts.append(_DBL)
     return "\n".join(parts)
@@ -234,9 +226,8 @@ async def run_input(
     parsers: list[ScoreParser],
     db: DatabaseManager,
     verbose: bool = False,
-) -> bool:
-    """Feed *text* through the parsing pipeline. Returns True on a match.
-    """
+) -> None:
+    """Feed *text* through the parsing pipeline and print what trivial would do."""
     author, payload = split_author(text)
     msg = MockMessage(content=payload, author=author)
     # Register the author in the guild's member cache so nickname
@@ -244,16 +235,15 @@ async def run_input(
     if author is not None:
         msg.guild.members[author.id] = author
 
-    # 1. Decide which parser handles this input
-    parser = await select_parser(parsers, msg)
+    parser = select_parser(parsers, msg)
     if parser is None:
         if verbose:
             print("  → dispatch: no parser matched")
-        return False
+        print("  ⚠  No parser matched this input.")
+        return
 
-    # 2-4. Parse → record → format
     try:
-        response = await parser.parse(msg)
+        response = parser.parse(msg)
         await parser.record_score(msg, response, db)
 
         player = response.username or msg.author.display_name
@@ -265,15 +255,13 @@ async def run_input(
             f"{'  ·  ' + str(response.meta) if response.meta else ''}"
         )
 
-        embed = await parser.format_response(response)
+        embed = parser.format_response(response)
         print()
         print(render_embed(embed))
-        return True
     except Exception as exc:
         print(f"  [!] {type(parser).__name__} raised {type(exc).__name__}: {exc}")
         if verbose:
             traceback.print_exc()
-        return False
 
 
 # Local database + input modes
@@ -318,8 +306,7 @@ async def file_mode(
         print(f"── Input #{i} {'─' * 44}")
         print(f"  {text}")
         print()
-        if not await run_input(text, parsers, db, verbose):
-            print("  ⚠  No parser matched this input.")
+        await run_input(text, parsers, db, verbose)
         print()
 
 
@@ -356,8 +343,7 @@ async def interactive_mode(
             print()
             continue
 
-        if not await run_input(text, parsers, db, verbose):
-            print("  ⚠  No parser matched this input.")
+        await run_input(text, parsers, db, verbose)
         print()
 
 
@@ -449,8 +435,7 @@ async def amain(args: argparse.Namespace, parsers: list[ScoreParser]) -> None:
         if args.prompt:
             text = args.prompt
             print(f"Input: {text}\n")
-            if not await run_input(text, parsers, db, args.verbose):
-                print("⚠  No parser matched this input.")
+            await run_input(text, parsers, db, args.verbose)
         elif args.file:
             await file_mode(args.file, parsers, db, args.delimiter, args.verbose)
         else:

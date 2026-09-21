@@ -26,18 +26,17 @@ class Sync(commands.Cog, name="sync"):
         description="Sync slash commands with Discord (global or guild).",
     )
     @commands.is_owner()
-    @app_commands.default_permissions(manage_guild=True)
     @app_commands.describe(scope="The scope of the sync. Can be `global` or `guild`")
     async def sync(self, context: Context, scope: str) -> None:
         """
         Register the bot's slash commands with Discord.
         """
         if scope == "global":
-            await context.bot.tree.sync()
+            await self.bot.tree.sync()
             description = "Slash commands have been globally synchronized."
         elif scope == "guild":
-            context.bot.tree.clear_commands(guild=context.guild)
-            await context.bot.tree.sync(guild=context.guild)
+            self.bot.tree.clear_commands(guild=context.guild)
+            await self.bot.tree.sync(guild=context.guild)
             description = (
                 "Guild-specific commands cleared; this guild now uses the global command tree."
             )
@@ -56,19 +55,18 @@ class Sync(commands.Cog, name="sync"):
         description="Remove the bot's slash commands (global or guild).",
     )
     @commands.is_owner()
-    @app_commands.default_permissions(manage_guild=True)
     @app_commands.describe(scope="The scope of the unsync. Can be `global` or `guild`")
     async def unsync(self, context: Context, scope: str) -> None:
         """
         Unregister the bot's slash commands with Discord.
         """
         if scope == "global":
-            context.bot.tree.clear_commands(guild=None)
-            await context.bot.tree.sync()
+            self.bot.tree.clear_commands(guild=None)
+            await self.bot.tree.sync()
             description = "Slash commands have been globally unsynchronized."
         elif scope == "guild":
-            context.bot.tree.clear_commands(guild=context.guild)
-            await context.bot.tree.sync(guild=context.guild)
+            self.bot.tree.clear_commands(guild=context.guild)
+            await self.bot.tree.sync(guild=context.guild)
             description = "Slash commands have been unsynchronized in this guild."
         else:
             embed = discord.Embed(

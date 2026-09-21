@@ -1,5 +1,4 @@
-"""Shared leaderboard rendering.
-"""
+"""Shared leaderboard rendering."""
 
 from __future__ import annotations
 
