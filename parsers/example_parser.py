@@ -6,12 +6,7 @@ from .base import ScoreParser, ScoreResponse, message_author_display_name
 
 
 class ExampleScoreParser(ScoreParser):
-    """Skeleton parser — copy this file to add a REAL game parser.
-
-    One parser per game: Wordle gets a parser, MapTap gets a parser, etc.
-    Set ``game`` to the game's stable identifier (used as the database key)
-    and replace the TODO logic below.
-    """
+    """Skeleton parser — copy this file to add a REAL game parser."""
 
     game = "example"
     # game_url = "https://yourgame.example"  # shown in the daily reminder

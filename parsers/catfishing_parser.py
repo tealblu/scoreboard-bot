@@ -8,62 +8,24 @@ from .base import ScoreParser, ScoreResponse, message_author_display_name
 
 
 class CatfishingScoreParser(ScoreParser):
-    """Parser for catfishing.net daily scores.
-
-    Expected message format::
-
-        catfishing.net
-        #815 - 4/10
-        🐈🐟🐟🐟🐈
-        🐈🐟🐟🐈🐟
-
-    The share header may also spell the site out (``catfishing dot net``)::
-
-        catfishing dot net
-        #819 - 8/10 🎉
-        🐈🐈🐈🐈🐈
-        🐟🐈🐈🐟🐈
-
-    A comment may precede the share — anything above the header line is
-    ignored::
-
-        easily could have been 8
-        catfishing.net
-        #819 - 5/10
-        🐈🐟🐈🐟🐈
-        🐈🐟🐈🐟🐟
-
-    ``4/10`` is correct guesses out of 10 rounds — the numerator is the
-    recorded score (higher is better). The puzzle number (#815) and
-    round total are stored in meta; the grid is shown in the embed for
-    context. Like other daily games, the score is tied to the day it
-    was posted (in the bot's timezone).
-    """
+    """Parser for catfishing.net daily scores."""
 
     game = "catfishing"
     score_sort = "desc"  # higher score is better
     game_url = "https://catfishing.net"
 
-    # The share header is the FIRST line, alone on that line: either
-    # "catfishing.net" or "catfishing dot net". Anchored to the whole line
-    # (not just the word anywhere) so prose like "…done a catfishing since
-    # 9/17…" never looks like a share.
+    # The share header is its own whole line: "catfishing.net" or "catfishing dot net".
     _header_re = re.compile(
         r"\s*catfishing(?:\s*dot\s*net|\.net)?\s*$", re.IGNORECASE
     )
     # "#815 - 4/10" — puzzle number and correct/total score.
     _number_re = re.compile(r"#\s*(\d+)")
     _score_re = re.compile(r"(\d+)\s*/\s*(\d+)")
-    # Catfishing shares are always "X/10" — correct guesses out of 10 rounds.
-    # Requiring the total filters out date-like fractions ("since 9/17").
+    # "X/10" — correct guesses out of 10 rounds; requiring the total filters dates.
     _total = "10"
 
     async def can_parse(self, message: discord.Message) -> bool:
-        # The share header is its own whole line — "catfishing.net" or
-        # "catfishing dot net" — and arbitrary prose may precede it (e.g.
-        # "easily could have been 8"). A "X/10" score line must follow the
-        # header. Casual mentions of the game, or a stray date fraction
-        # ("since 9/17"), still can't match.
+        # The header line must be followed by an "X/10" score line.
         lines = message.content.strip().splitlines()
         header_index = next(
             (i for i, line in enumerate(lines) if self._header_re.match(line)),
@@ -80,17 +42,14 @@ class CatfishingScoreParser(ScoreParser):
     async def parse(self, message: discord.Message) -> ScoreResponse:
         lines = message.content.strip().splitlines()
 
-        # The share starts at the header line ("catfishing.net" /
-        # "catfishing dot net"); any lines before it are preamble (e.g. a
-        # comment) and are ignored.
+        # Lines before the share header are preamble and are ignored.
         header_index = next(
             (i for i, line in enumerate(lines) if self._header_re.match(line)),
             None,
         )
         share_lines = lines[header_index + 1 :] if header_index is not None else lines
 
-        # -- Puzzle number ("#819 - 5/10") — search the share only, so
-        #    preamble text can't hijack the number --
+        # -- Puzzle number from the share lines --
         number = ""
         for line in share_lines:
             m = self._number_re.search(line)
@@ -98,9 +57,7 @@ class CatfishingScoreParser(ScoreParser):
                 number = m.group(1)
                 break
 
-        # -- Score: "X/10" — record the numerator --
-        # Only a line whose total is the game's 10 rounds counts as the
-        # score (can_parse guarantees at least one follows the header).
+        # -- Score: the "X/10" line, recording the numerator --
         score = None
         total = None
         for line in share_lines:

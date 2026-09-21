@@ -21,18 +21,10 @@ _MONTH_ABBR = {
 
 class DialedScoreParser(ScoreParser):
     """Parser for dialed.gg daily scores — specifically the Color Daily.
-
-    Dialed offers several games (Color, Sound, Time, Shape) across solo,
-    multiplayer and daily modes. Only the daily is tracked here, so this
-    parser matches exclusively on the ``Color Daily`` share header::
-
         Color Daily — Sep 18
         40.49/50 🟩🟨🟨🟧🟨
         https://dialed.gg/color?d=1&s=40.49
 
-    The exact score (e.g. 40.49) is what gets recorded — unlike most
-    games here the score is a decimal, out of 50 (higher is better). The
-    per-round tiles and the total are echoed in the embed for context.
     """
 
     game = "dialed"
@@ -124,10 +116,7 @@ class DialedScoreParser(ScoreParser):
         embed.set_footer(text=f"{score_response.username} · {score_response.day}")
         return embed
 
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-
+    # helpers
     @staticmethod
     def _fmt(score: int | float | None) -> str:
         """Render a score for display: 40.49 → '40.49', 50.0 → '50'."""
@@ -139,12 +128,7 @@ class DialedScoreParser(ScoreParser):
 
     @classmethod
     def _parse_date(cls, text: str) -> str | None:
-        """Parse a date like ``Sep 18`` into ``YYYY-MM-DD``.
-
-        Uses the current year in the bot's timezone, rewinding a year if
-        the resulting date is in the future (e.g. a "Dec 31 ..." score
-        posted on Jan 1).
-        """
+        """Parse a date like ``Sep 18`` into ``YYYY-MM-DD``."""
         match = cls._date_re.search(text)
         if match is None:
             return None

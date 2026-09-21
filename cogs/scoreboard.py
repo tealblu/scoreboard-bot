@@ -26,37 +26,24 @@ class Scoreboard(commands.Cog):
         self.bot = bot
         self._tracked_channels: dict[int, int] = {}  # guild_id -> channel_id
 
-        # -------------------------------------------------------------- #
-        # Parsers are auto-discovered from the parsers/ package —         #
-        # adding a new game = dropping one file, nothing else to edit.    #
-        # -------------------------------------------------------------- #
+        # parsers are auto-discovered from parsers directory
         self.parsers: list[ScoreParser] = discover_parsers()
         for parser in self.parsers:
             logger.info(
                 "Registered parser: %s (game: %s)", type(parser).__name__, parser.game
             )
 
-    # ------------------------------------------------------------------ #
-    # Parser management                                                  #
-    # ------------------------------------------------------------------ #
-
+    # parser management
     def add_parser(self, parser: ScoreParser) -> None:
         """Manually append a parser instance (for special cases).
-
-        Parsers are checked in registration order by ``select_parser``;
-        the first one whose ``can_parse`` returns ``True`` wins.
         """
         self.parsers.append(parser)
         logger.info("Registered parser: %s", type(parser).__name__)
 
-    # ------------------------------------------------------------------ #
-    # Channel tracking                                                   #
-    # ------------------------------------------------------------------ #
+    # channel tracking
 
     async def _get_tracked_channel(self, guild_id: int) -> int | None:
         """Return the monitored channel ID for *guild_id*, or None.
-
-        Results are cached in memory after the first lookup per guild.
         """
         if guild_id not in self._tracked_channels:
             self._tracked_channels[guild_id] = (
@@ -64,9 +51,7 @@ class Scoreboard(commands.Cog):
             )
         return self._tracked_channels[guild_id]
 
-    # ------------------------------------------------------------------ #
-    # Commands                                                           #
-    # ------------------------------------------------------------------ #
+    # commands
 
     @commands.hybrid_group(
         name="scorechannel",
@@ -99,9 +84,6 @@ class Scoreboard(commands.Cog):
     ) -> None:
         """
         Set the channel trivial monitors for scores.
-
-        :param context: The hybrid command context.
-        :param channel: The channel to monitor for score messages.
         """
         await self.bot.database.set_score_channel(context.guild.id, channel.id)
         self._tracked_channels[context.guild.id] = channel.id
@@ -139,8 +121,6 @@ class Scoreboard(commands.Cog):
     async def scorechannel_show(self, context: Context) -> None:
         """
         Show the currently monitored score channel.
-
-        :param context: The hybrid command context.
         """
         channel_id = await self._get_tracked_channel(context.guild.id)
         if channel_id is None:
@@ -156,10 +136,7 @@ class Scoreboard(commands.Cog):
             )
         await context.send(embed=embed, silent=True)
 
-    # ------------------------------------------------------------------ #
-    # Score queries                                                       #
-    # ------------------------------------------------------------------ #
-
+    # score queries
     @commands.hybrid_command(
         name="scores",
         description="Show the score leaderboard.",
@@ -178,10 +155,6 @@ class Scoreboard(commands.Cog):
             !scores                   — today's scores, all games
             !scores wordle            — today's wordle scores
             !scores wordle 2026-09-17 — wordle scores for a specific date
-
-        :param context: The command context.
-        :param game: Optional game identifier to filter by.
-        :param day: Optional date (YYYY-MM-DD) to filter by.
         """
         # Ack immediately — the leaderboard query over a large (e.g. freshly
         # backfilled) table can outlast Discord's 3-second interaction window.
@@ -207,10 +180,7 @@ class Scoreboard(commands.Cog):
         )
         await context.send(embed=embed, silent=True)
 
-    # ------------------------------------------------------------------ #
-    # Nuke                                                               #
-    # ------------------------------------------------------------------ #
-
+    # db nuke
     @commands.hybrid_command(
         name="nuke",
         description="Delete all recorded scores for this server (admins only).",
@@ -225,16 +195,11 @@ class Scoreboard(commands.Cog):
         """
         Delete every recorded score for this server.
 
-        Only this server's leaderboard rows are removed — the monitored
-        score channel and daily reminder settings are kept, and the other
-        servers' scores are untouched.
+        Only this server's leaderboard rows are removed.
 
         Usage:
             !nuke          — shows what this command does
             !nuke confirm  — permanently deletes this server's scores
-
-        :param context: The hybrid command context.
-        :param confirm: Must be "confirm" to actually delete.
         """
         if confirm.strip().lower() != "confirm":
             embed = discord.Embed(
@@ -242,8 +207,6 @@ class Scoreboard(commands.Cog):
                     "⚠️ This **permanently deletes every recorded score** for "
                     f"**{context.guild.name}** — today's and all-time "
                     "leaderboards will start empty.\n\n"
-                    "Channel and reminder settings are kept, and no other "
-                    "server's scores are affected.\n\n"
                     "Run `/nuke confirm` (or `!nuke confirm`) to proceed."
                 ),
                 color=0xE02B2B,
@@ -261,10 +224,7 @@ class Scoreboard(commands.Cog):
         )
         await context.send(embed=embed, silent=True)
 
-    # ------------------------------------------------------------------ #
-    # Backfill                                                           #
-    # ------------------------------------------------------------------ #
-
+    # backfill
     @commands.hybrid_command(
         name="backfill",
         description="Record score messages from the score channel's history.",
@@ -284,21 +244,13 @@ class Scoreboard(commands.Cog):
     ) -> None:
         """
         Scan the score channel's message history and record any score
-        messages into the database — without posting result embeds.
-
-        Handy right after enabling a score channel, so leaderboards can be
-        filled from messages posted before trivial was watching. Re-running
-        is safe: same-day scores for the same user are overwritten.
+        messages into the database.
 
         Usage:
             !backfill         — scan the last 200 messages
             !backfill 1000    — scan the last 1000 messages
             !backfill 0       — scan the entire history
             !backfill 0 7     — entire history but only the last 7 days
-
-        :param context: The hybrid command context.
-        :param limit: Maximum number of messages to scan (0 = no limit).
-        :param days: Only scan messages newer than this many days.
         """
         channel_id = await self._get_tracked_channel(context.guild.id)
         if channel_id is None:
@@ -328,7 +280,7 @@ class Scoreboard(commands.Cog):
         )
 
         kwargs: dict = {}
-        # discord.py's history() silently caps at 100 messages by default —
+        # discord.py's history() silently caps at 100 messages by default
         # when limit is 0 (or negative) the command promises "all history",
         # so pass limit=None explicitly to disable that cap.
         if limit > 0:
@@ -342,9 +294,6 @@ class Scoreboard(commands.Cog):
         recorded = 0
         games: dict[str, int] = {}
         now_day = today_str()
-        # (author, game, day) keys already recorded on this run. History is
-        # iterated newest-first, so a duplicate same-day post for the same
-        # player/game must NOT overwrite the newer one just seen: skip it.
         seen: set[tuple[int, str, str]] = set()
 
         async for message in channel.history(**kwargs):
@@ -356,12 +305,6 @@ class Scoreboard(commands.Cog):
                 if parser is None:
                     continue
                 response = await parser.parse(message)
-                # Parsers default the day to "today" when the share text
-                # carries no date (Krillion, Wordle, ...). When backfilling
-                # old messages that's the wrong day — fall back to the
-                # message's own posting date (in the bot's timezone) unless
-                # the message itself was posted today (or the parser picked
-                # an explicit date).
                 message_day = day_string(message.created_at)
                 if response.day != message_day and response.day == now_day:
                     response.day = message_day
@@ -393,10 +336,7 @@ class Scoreboard(commands.Cog):
         )
         await context.send(embed=embed, silent=True)
 
-    # ------------------------------------------------------------------ #
-    # Event listeners                                                    #
-    # ------------------------------------------------------------------ #
-
+    # listeners
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
         # Ignore bots and DMs

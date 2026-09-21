@@ -11,61 +11,6 @@ import json
 import aiosqlite
 
 
-async def migrate_user_scores_schema(connection: aiosqlite.Connection) -> None:
-    """Migrate pre-existing ``user_scores`` tables so ``score`` is REAL.
-
-    Older databases declared the column INTEGER; dialed.gg daily scores
-    are decimals (e.g. ``40.49/50``) that need a REAL column to store
-    exactly. SQLite can't ALTER a column's type, so the table is rebuilt
-    in place. Fresh databases (schema.sql already declares REAL) and
-    already-migrated tables are left untouched.
-
-    Call this after executing ``schema.sql`` on the same connection.
-    """
-    cursor = await connection.execute("PRAGMA table_info(user_scores)")
-    columns = await cursor.fetchall()
-    score_type = next((row[2] for row in columns if row[1] == "score"), None)
-    if score_type is None or score_type.upper() == "REAL":
-        return
-
-    await connection.executescript(
-        """
-        BEGIN;
-        CREATE TABLE user_scores_migrated (
-          `guild_id`   varchar(20)  NOT NULL,
-          `user_id`    varchar(20)  NOT NULL,
-          `game`       varchar(32)  NOT NULL,
-          `day`        varchar(10)  NOT NULL,
-          `score`      real         NOT NULL,
-          `user_name`  varchar(255) NOT NULL,
-          `meta`       text         NULL,
-          `created_at` timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          PRIMARY KEY (`guild_id`, `user_id`, `game`, `day`)
-        );
-        INSERT INTO user_scores_migrated
-          SELECT guild_id, user_id, game, day, score, user_name, meta, created_at
-          FROM user_scores;
-        DROP TABLE user_scores;
-        ALTER TABLE user_scores_migrated RENAME TO user_scores;
-        COMMIT;
-        """
-    )
-    await connection.commit()
-
-    # The rebuild above drops any indexes on user_scores, so re-create the
-    # leaderboard indexes (schema.sql creates them for fresh databases, but
-    # they'd be lost when the old table is dropped and renamed here).
-    await connection.executescript(
-        """
-        CREATE INDEX IF NOT EXISTS `idx_user_scores_guild_day`
-          ON `user_scores` (`guild_id`, `day`);
-        CREATE INDEX IF NOT EXISTS `idx_user_scores_guild_game_day`
-          ON `user_scores` (`guild_id`, `game`, `day`);
-        """
-    )
-    await connection.commit()
-
-
 class DatabaseManager:
     def __init__(self, *, connection: aiosqlite.Connection) -> None:
         self.connection = connection

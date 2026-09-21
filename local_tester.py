@@ -2,17 +2,6 @@
 """
 Lightweight local testing framework for scoreboard parsers.
 
-Run parsers against text input without deploying trivial, and
-see exactly what would happen in production:
-
-    1. select_parser  — decides which parser (game) handles the input
-    2. parse          — the parser extracts the user's score
-    3. record_score   — the score is logged to a local SQLite database
-       (same schema + upsert logic the deployed bot uses)
-    4. format_response— the embed is rendered as terminal text
-
-Parsers are auto-discovered from the parsers/ package.
-
 Usage:
     Interactive:  python local_tester.py
     Single input: python local_tester.py -p "Wordle 1,234 4/6"
@@ -39,13 +28,10 @@ from pathlib import Path
 import aiosqlite
 import discord
 
-# ---------------------------------------------------------------------------
-# Project root on sys.path so `parsers` / `database` import standalone
-# ---------------------------------------------------------------------------
 PROJECT_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from database import DatabaseManager, migrate_user_scores_schema  # noqa: E402
+from database import DatabaseManager  # noqa: E402
 from parsers.base import ScoreParser  # noqa: E402
 from parsers.dispatch import select_parser  # noqa: E402
 from parsers.registry import discover_parsers  # noqa: E402
@@ -54,9 +40,8 @@ from timeutil import today_str  # noqa: E402
 
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
 
-# A line like "@Alice:1001 :: Wordle 1,234 4/6" lets test inputs come from
-# a specific simulated user (display name / nickname:user id). The parser
-# only ever sees the payload.
+# Format "@Alice:1001 :: Wordle 1,234 4/6" lets test inputs come from
+# a specific simulated user (display name / nickname:user id).
 #
 # To simulate a server nickname that differs from the user's global name:
 #   @Nickname~Global Name:1001 :: Wordle 1,234 4/6
@@ -90,9 +75,6 @@ def split_author(text: str) -> tuple[MockUser | None, str]:
 
 class MockUser:
     """Stand-in for discord.Member / discord.User.
-
-    Mirrors discord.py: ``display_name`` prefers the server nickname
-    (``nick``) and falls back to the global name (``name``).
     """
 
     def __init__(
@@ -132,9 +114,6 @@ class MockChannel:
 
 class MockGuild:
     """Stand-in for discord.Guild.
-
-    Holds a member cache (``members``) so the same ``guild.get_member``
-    lookup the production bot uses for nickname resolution works here.
     """
 
     def __init__(self, name: str = "Test Server", gid: int = 3000) -> None:
@@ -151,9 +130,6 @@ class MockGuild:
 
 class MockMessage:
     """Stand-in for discord.Message.
-
-    Exposes the attributes that parsers are most likely to read.
-    Extend this if a new parser touches more of the message API.
     """
 
     def __init__(
@@ -264,10 +240,7 @@ async def run_input(
     db: DatabaseManager,
     verbose: bool = False,
 ) -> bool:
-    """Feed *text* through the production pipeline. Returns True on a match.
-
-    An optional ``@Name:id ::`` prefix on *text* simulates a different
-    author so multi-user scenarios can be tested.
+    """Feed *text* through the parsing pipeline. Returns True on a match.
     """
     author, payload = split_author(text)
     msg = MockMessage(content=payload, author=author)
@@ -319,7 +292,6 @@ async def open_db(path: Path) -> DatabaseManager:
     connection = await aiosqlite.connect(str(path))
     schema = PROJECT_ROOT / "database" / "schema.sql"
     await connection.executescript(schema.read_text(encoding="utf-8"))
-    await migrate_user_scores_schema(connection)
     await connection.commit()
     return DatabaseManager(connection=connection)
 

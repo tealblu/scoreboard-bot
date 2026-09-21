@@ -12,15 +12,9 @@ from .base import ScoreParser, ScoreResponse, message_author_display_name
 
 class MapTapScoreParser(ScoreParser):
     """Parser for www.maptap.gg daily scores.
-
-    Expected message format::
-
         www.maptap.gg September 17
         93🏆 99🎯 98🎯 87🎓 62😐
         Final score: 835
-
-    Only the total score is recorded to the database. Individual round
-    scores (number + emoji) are echoed in the embed for context.
     """
 
     game = "maptap"
@@ -97,16 +91,10 @@ class MapTapScoreParser(ScoreParser):
         embed.set_footer(text=f"{score_response.username} · {score_response.day}")
         return embed
 
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-
+    # helpers
     @classmethod
     def _parse_date(cls, text: str) -> str | None:
-        """Try to parse a date like ``September 17`` into ``YYYY-MM-DD``.
-
-        Uses the current year in the bot's timezone as a default.
-        """
+        """Try to parse a date like ``September 17`` into ``YYYY-MM-DD``."""
         # Strip any trailing timezone info or stray characters.
         text = text.strip().rstrip(".")
         parts = text.split()
@@ -131,8 +119,6 @@ class MapTapScoreParser(ScoreParser):
             return None
 
         # A date in the future means the share is from an earlier year
-        # (e.g. backfilling an old "December 17" message in January) —
-        # rewind so it doesn't land on a future day.
         if date.date() > now.date():
             date = date.replace(year=year - 1)
         return date.strftime("%Y-%m-%d")

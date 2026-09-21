@@ -1,8 +1,4 @@
 """Daily games reminder.
-
-Server owners can enable a daily reminder that lists every supported game
-(with a link to it) in the server's score channel at a configured time.
-Settings live in the ``daily_reminders`` table, one row per guild.
 """
 
 from __future__ import annotations
@@ -36,14 +32,9 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
 
     def __init__(self, bot: TrivialBot) -> None:
         self.bot = bot
-        # Parsers are cached once at load time (the scoreboard cog discovers
-        # them the same way); used for the game list and leaderboard sorting.
         self.parsers = discover_parsers()
 
-    # ------------------------------------------------------------------ #
-    # Background task                                                    #
-    # ------------------------------------------------------------------ #
-
+    # background task
     async def cog_load(self) -> None:
         """Start the reminder loop once the cog is added to the bot."""
         self.daily_reminder_loop.start()
@@ -118,15 +109,9 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
     async def before_daily_reminder_loop(self) -> None:
         await self.bot.wait_until_ready()
 
-    # ------------------------------------------------------------------ #
-    # Reminder embed                                                     #
-    # ------------------------------------------------------------------ #
-
+    # reminder embed
     def build_reminder_embed(self, channel: discord.abc.GuildChannel) -> discord.Embed:
         """List every supported game (with its link) in a Discord embed.
-
-        The example skeleton parser is skipped, mirroring the status
-        rotation in :mod:`bot`.
         """
         games = [
             parser
@@ -160,14 +145,6 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
         self, guild_id: int, guild: discord.Guild | None = None
     ) -> discord.Embed:
         """Build the previous day's scoreboard embed for *guild_id*.
-
-        Reuses the shared leaderboard renderer behind ``!scores`` so the
-        morning reminder shows yesterday's standings beside today's game
-        list. An empty board simply reads "No scores recorded yet."
-        Yesterday is measured in the bot's target timezone.
-
-        *guild* (optional) lets the renderer use each player's **current
-        server nickname** instead of the name stored with the score.
         """
         yesterday = yesterday_str()
         records = await self.bot.database.get_scores(
@@ -190,20 +167,13 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
         guild: discord.Guild | None = None,
     ) -> list[discord.Embed]:
         """The complete daily reminder as a list of embeds.
-
-        The first embed lists today's games; the second shows yesterday's
-        scoreboard. Both the background loop and the ``test`` command send
-        exactly this, so a preview always matches the scheduled message.
         """
         return [
             self.build_reminder_embed(channel),
             await self.build_yesterday_scoreboard_embed(guild_id, guild=guild),
         ]
 
-    # ------------------------------------------------------------------ #
-    # Commands                                                           #
-    # ------------------------------------------------------------------ #
-
+    # commands
     @commands.hybrid_group(
         name="dailyreminder",
         description="Manage the daily games reminder.",
@@ -238,8 +208,6 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
     async def dailyreminder_enable(self, context: Context) -> None:
         """
         Enable the daily games reminder in the server's score channel.
-
-        :param context: The hybrid command context.
         """
         channel_id = await self.bot.database.get_score_channel(context.guild.id)
         if channel_id is None:
@@ -275,8 +243,6 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
     async def dailyreminder_disable(self, context: Context) -> None:
         """
         Disable the daily games reminder.
-
-        :param context: The hybrid command context.
         """
         settings = await self.bot.database.get_daily_reminder(context.guild.id)
         if not settings or not settings["enabled"]:
@@ -309,9 +275,6 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
     async def dailyreminder_time(self, context: Context, time: str) -> None:
         """
         Set the daily reminder time in the bot's timezone.
-
-        :param context: The hybrid command context.
-        :param time: The reminder time, "HH:MM" (24-hour).
         """
         match = _REMINDER_TIME_RE.match(time.strip())
         if match is None:
@@ -388,20 +351,11 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
     @commands.has_permissions(manage_guild=True)
     async def dailyreminder_test(self, context: Context) -> None:
         """
-        Send the daily reminder to the current channel, exactly as the
-        scheduled message would look: today's game list plus yesterday's
-        scoreboard.
-
-        The reminder does not get marked as sent, so running this preview
-        will not stop the real reminder from firing at its scheduled time.
-
-        :param context: The hybrid command context.
+        Send the daily reminder to the current channel
         """
         channel_id = await self.bot.database.get_score_channel(context.guild.id)
         score_channel = context.guild.get_channel(channel_id) if channel_id else None
-        # Reference the real score channel in the embed when one is set, so
-        # the preview matches the scheduled message; fall back to this
-        # channel when no score channel is configured yet.
+
         reference = score_channel or context.channel
         embeds = await self.build_reminder_embeds(
             context.guild.id, reference, guild=context.guild

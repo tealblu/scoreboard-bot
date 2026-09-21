@@ -1,11 +1,4 @@
 """Shared leaderboard rendering.
-
-This module owns ``build_scoreboard_embed`` — the **single** function that
-both the ``!scores`` command and the local tester call to turn a list of
-:class:`ScoreRecord` rows into a Discord embed.
-
-trivial sends that embed to the channel; the local tester renders the same
-embed as terminal text via ``render_embed``.  Two views, one data shape.
 """
 
 from __future__ import annotations
@@ -32,12 +25,7 @@ def _ranked(
     orders: _SortOrders,
     display_name: _DisplayName | None = None,
 ) -> list[ScoreRecord]:
-    """Sort records honoring each game's direction (lower=better by default).
-
-    *display_name* is an optional ``callable(ScoreRecord) -> str`` returning
-    the name to sort/display (e.g. the user's current server nickname);
-    it defaults to the stored ``user_name``.
-    """
+    """Sort records honoring each game's direction (lower=better by default)."""
     name = display_name or (lambda r: r.user_name)
 
     def key(r: ScoreRecord) -> tuple[int, str]:
@@ -59,21 +47,7 @@ def build_scoreboard_embed(
     sort_orders: _SortOrders | None = None,
     guild: discord.Guild | None = None,
 ) -> discord.Embed:
-    """Return a Discord embed representing a game leaderboard.
-
-    When *game* is given only that game's scores appear; otherwise every
-    game present in *records* is shown grouped by game name.
-
-    *sort_orders* maps a game identifier to ``"asc"`` (lower is better) or
-    ``"desc"`` (higher is better) — build it from registered parsers via
-    ``{p.game: p.score_sort for p in parsers}``.
-
-    *guild* is the server the leaderboard is shown in. When given, each
-    user's **current server nickname** (via ``guild.get_member``) is used
-    instead of the name stored with the score, so leaderboards reflect
-    nickname changes (and nicknames set after scoring). Users no longer in
-    the server fall back to the stored name.
-    """
+    """Return a Discord embed representing a game leaderboard."""
     orders = sort_orders or {}
 
     def _display_name(r: ScoreRecord) -> str:

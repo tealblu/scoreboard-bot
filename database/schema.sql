@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS `daily_reminders` (
 -- One row per (guild, user, game, day): many users x many games,
 -- one score per message. Re-posting a daily score overwrites the row.
 -- `day` is YYYY-MM-DD in the bot's target timezone (TIMEZONE env var; UTC by
--- default) — the day boundary follows that timezone, not UTC.
+-- default)
 -- `score` is REAL so decimal scores (e.g. dialed's 40.49/50) store exactly;
 -- most games still write whole numbers.
 CREATE TABLE IF NOT EXISTS `user_scores` (

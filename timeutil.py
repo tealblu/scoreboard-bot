@@ -1,21 +1,12 @@
-"""Bot-wide timezone handling — the single source of truth for "what day is it".
+"""Bot-wide timezone handling
 
 Every part of trivial that needs today's date, yesterday's date, the current
 clock time, or the calendar day a message/share belongs to goes through this
-module.  One environment variable — ``TIMEZONE`` — therefore controls:
-
-* which ``YYYY-MM-DD`` a score is stored and read under (``user_scores.day``)
-* which calendar day the daily reminder treats as "today"/"yesterday"
-  (``daily_reminders.last_fired`` and the reminder loop)
-* the timezone the per-guild reminder clock (``daily_reminders.reminder_time``)
-  is interpreted in
-* the reference year the date parsers (dialed, maptap) resolve "Sep 18"
-  against
+module.
 
 Set ``TIMEZONE`` to an IANA timezone name, e.g. ``America/New_York`` or
 ``Asia/Tokyo``.  It defaults to ``UTC`` so existing deployments behave
-identically until they opt in.  A bad value fails fast at import time rather
-than silently shifting every recorded day.
+identically until they opt in.
 """
 
 from __future__ import annotations
@@ -33,7 +24,7 @@ def _load_timezone() -> ZoneInfo:
         return ZoneInfo(name)
     except ZoneInfoNotFoundError as exc:
         raise ValueError(
-            f"Invalid TIMEZONE {name!r} — expected an IANA timezone name "
+            f"Invalid TIMEZONE {name!r} - expected an IANA timezone name "
             "(e.g. 'UTC', 'America/New_York', 'Europe/London'). "
             "See https://en.wikipedia.org/wiki/List_of_tz_database_time_zones."
         ) from exc
@@ -55,8 +46,7 @@ def now() -> datetime:
 def as_bot_tz(value: datetime) -> datetime:
     """Convert *value* to the bot's timezone.
 
-    Naive datetimes are assumed to be UTC — the historical behaviour, and
-    what Discord's timestamps are expressed in.
+    Naive datetimes are assumed to be UTC (default for discord timestamps)
     """
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)

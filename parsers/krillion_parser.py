@@ -8,20 +8,7 @@ from .base import ScoreParser, ScoreResponse, message_author_display_name
 
 
 class KrillionScoreParser(ScoreParser):
-    """Parser for Krillion daily scores.
-
-    Expected message format::
-
-        Krillion #64 🦐
-        265
-
-        🫧🫧🏮🫧🦑🦑🐟
-
-    The second line is the total score and is what gets recorded. The
-    puzzle number (#64) is stored in meta and shown in the embed, along
-    with the emoji grid for context. Like other daily games, the score
-    is tied to the day it was posted (in the bot's timezone).
-    """
+    """Parser for Krillion daily scores."""
 
     game = "krillion"
     score_sort = "desc"  # higher score is better
@@ -31,9 +18,7 @@ class KrillionScoreParser(ScoreParser):
     _header_re = re.compile(r"Krillion\s*#\s*(\d+)", re.IGNORECASE)
 
     async def can_parse(self, message: discord.Message) -> bool:
-        # Require the "Krillion #N" header AND a standalone numeric score
-        # line, so a text-only mention of the game doesn't match (and
-        # avoid recording a None score).
+        # Require the "Krillion #N" header and a standalone numeric score line.
         if self._header_re.search(message.content) is None:
             return False
         return any(line.strip().isdigit() for line in message.content.splitlines())
@@ -46,8 +31,6 @@ class KrillionScoreParser(ScoreParser):
         number = header_match.group(1) if header_match else ""
 
         # -- Total score: the first standalone numeric line --
-        # e.g. "265". The header line ("Krillion #64 🦐") and the emoji
-        # grid never consist of digits alone, so this is unambiguous.
         score = None
         for line in lines:
             stripped = line.strip()
