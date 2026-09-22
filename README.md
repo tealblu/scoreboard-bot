@@ -3,14 +3,9 @@
 </p>
 
 **trivial** is a Discord bot that automatically tracks game scores from chat
-messages. When a user posts a score (e.g. a Wordle result), trivial parses it,
-stores it in SQLite, and replies with a formatted embed. A `!scores` command
-retrieves leaderboards filtered by game and date.
+messages. When a user posts their daily score, trivial remembers the score. The `!scores` command can be used to display scores that trivial remembered.
 
-Parsers are auto-discovered from the `parsers/` directory — adding support for
-a new game is as simple as dropping in a new file that subclasses `ScoreParser`.
-
-## How to set up
+# How to set up
 
 1. Copy `.env.example` to `.env` and fill in your bot token and prefix:
    ```
@@ -37,7 +32,7 @@ a new game is as simple as dropping in a new file that subclasses `ScoreParser`.
 > under *Bot → Privileged Gateway Intents* in the [Discord Developer
 > Portal](https://discord.com/developers/applications). Without the members
 > intent, players the bot hasn't seen since its last restart may appear on
-> leaderboards under the name they had when the score was recorded.
+> leaderboards under the name they had when the score was recorded, and player nicknames may not be resolved correctly.
 
 ### Docker
 
@@ -55,7 +50,7 @@ GHCR_OWNER=your-github-user docker compose up -d
 
 Make sure `.env` exists with at least `TOKEN` and `PREFIX`.
 
-## Commands
+# Commands
 
 | Command | Description |
 |---------|-------------|
@@ -75,8 +70,14 @@ Make sure `.env` exists with at least `TOKEN` and `PREFIX`.
 | `!/sync global` | Re-sync the slash command tree with Discord (bot owner only) |
 | `!/unsync global` | Remove the bot's slash commands (bot owner only) |
 
-All commands are hybrid: every command above works both as a slash command
-(`/scores`) and as a prefix command (`!scores`).
+Every command above works both as a slash command (`/scores`) and as a prefix command (`!scores`).
+
+# Development notes
+
+
+## Adding a new game
+
+"Parsers" are used to extract the game's score from a message. Parsers are auto-discovered from the `parsers/` directory. Adding support for a new game is as simple as dropping in a new file that subclasses `ScoreParser`.
 
 ## Local testing
 
@@ -117,6 +118,9 @@ python local_tester.py --scores wordle --day 2026-09-17
 python local_tester.py -f inputs.txt --verbose
 python local_tester.py -f inputs.txt --db out/test.db  # Custom DB path
 ```
+
+## AI Disclosure
+AI was used to generate the initial framework for this project, as well as assisting in some of the documentation. Only open-weight models were used for AI-generated content, run through open-source tooling.
 
 ## License
 
