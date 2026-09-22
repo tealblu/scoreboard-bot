@@ -12,7 +12,8 @@ identically until they opt in.
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
+from typing import AbstractSet
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 DEFAULT_TIMEZONE = "UTC"
@@ -66,6 +67,17 @@ def yesterday_str() -> str:
 def time_str() -> str:
     """The current clock time as ``HH:MM`` in the bot's timezone."""
     return now().strftime("%H:%M")
+
+
+def active_streak(days: AbstractSet[str], through: str) -> int:
+    """How many consecutive calendar days in *days* end on *through*.
+    """
+    cursor = date.fromisoformat(through)
+    count = 0
+    while cursor.isoformat() in days:
+        count += 1
+        cursor -= timedelta(days=1)
+    return count
 
 
 def day_string(value: datetime) -> str:

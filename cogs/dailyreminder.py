@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections import defaultdict
 from typing import TYPE_CHECKING
 
 import discord
@@ -12,7 +13,7 @@ from discord.ext import commands, tasks
 
 from parsers import build_game_link_lines, build_scoreboard_embed
 from parsers.registry import discover_parsers
-from timeutil import bot_tz, now, now_label, yesterday_str
+from timeutil import active_streak, bot_tz, now, now_label, yesterday_str
 
 if TYPE_CHECKING:
     from bot import TrivialBot
@@ -22,11 +23,48 @@ logger = logging.getLogger("trivial")
 
 _REMINDER_TIME_RE = re.compile(r"^([01]?\d|2[0-3]):([0-5]\d)$")
 
+# Discord caps an embed description at 4096 characters; long player lists
+# are split across several embeds so nobody gets dropped.
+_DESCRIPTION_LIMIT = 4096
+
 _TZ_LABEL = str(bot_tz())  # e.g. "UTC" or "America/New_York"
 
 
+def _lines_to_embeds(
+    lines: list[str],
+    *,
+    title: str,
+    footer: str | None,
+    color: int,
+) -> list[discord.Embed]:
+    """Split *lines* into embeds, each staying under the description limit."""
+    embeds: list[discord.Embed] = []
+    current: list[str] = []
+    length = 0
+    for line in lines:
+        size = len(line) + 2  # line + its trailing newline
+        if current and length + size > _DESCRIPTION_LIMIT:
+            embeds.append(
+                discord.Embed(title=title, description="\n".join(current), color=color)
+            )
+            current = []
+            length = 0
+        current.append(line)
+        length += size
+    if current:
+        embeds.append(
+            discord.Embed(title=title, description="\n".join(current), color=color)
+        )
+
+    if footer:
+        for i, embed in enumerate(embeds, 1):
+            text = footer if len(embeds) == 1 else f"{footer} · part {i}/{len(embeds)}"
+            embed.set_footer(text=text)
+    return embeds
+
+
 class DailyReminder(commands.Cog, name="dailyreminder"):
-    """Sends a daily reminder listing every supported game with a link."""
+    """Sends a daily reminder with links, yesterday's scoreboard and players."""
 
     def __init__(self, bot: TrivialBot) -> None:
         self.bot = bot
@@ -139,6 +177,49 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
             guild=guild,
         )
 
+    async def build_yesterday_players_embeds(
+        self, guild_id: int, guild: discord.Guild | None = None
+    ) -> list[discord.Embed]:
+        """List every player active yesterday with their current streak.
+        """
+        yesterday = yesterday_str()
+        days_by_user: dict[int, set[str]] = defaultdict(set)
+        user_names: dict[int, str] = {}
+        for user_id, user_name, day in await self.bot.database.get_play_days(
+            guild_id
+        ):
+            days_by_user[user_id].add(day)
+            user_names[user_id] = user_name
+
+        def display_name(user_id: int) -> str:
+            if guild is not None:
+                member = guild.get_member(user_id)
+                if member is not None:
+                    return member.display_name
+            return user_names.get(user_id, f"<@{user_id}>")
+
+        players = sorted(
+            (
+                (display_name(user_id), active_streak(days, yesterday))
+                for user_id, days in days_by_user.items()
+                if yesterday in days
+            ),
+            key=lambda item: (-item[1], item[0].lower()),
+        )
+        lines = [
+            f"{name} — 🔥 **{streak}** day{'s' if streak != 1 else ''}"
+            for name, streak in players
+        ]
+        return _lines_to_embeds(
+            lines,
+            title="🔥 Yesterday's Players",
+            footer=(
+                f"{len(players)} player{'s' if len(players) != 1 else ''} "
+                f"· {yesterday}"
+            ),
+            color=0xBEBEFE,
+        )
+
     async def build_reminder_embeds(
         self,
         guild_id: int,
@@ -149,6 +230,7 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
         return [
             self.build_reminder_embed(channel),
             await self.build_yesterday_scoreboard_embed(guild_id, guild=guild),
+            *await self.build_yesterday_players_embeds(guild_id, guild=guild),
         ]
 
     @commands.hybrid_group(

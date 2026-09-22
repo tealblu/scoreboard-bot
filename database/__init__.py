@@ -192,6 +192,18 @@ class DatabaseManager:
         await self.connection.commit()
         return cursor.rowcount
 
+    async def get_play_days(self, guild_id: int) -> list[tuple[int, str, str]]:
+        """
+        Fetch one row per (user, day) a score was recorded for a guild.
+        """
+        cursor = await self.connection.execute(
+            "SELECT user_id, MAX(user_name), day FROM user_scores "
+            "WHERE guild_id = ? GROUP BY user_id, day ORDER BY day, user_id",
+            (str(guild_id),),
+        )
+        rows = await cursor.fetchall()
+        return [(int(row[0]), row[1], row[2]) for row in rows]
+
     async def get_scores(
         self,
         guild_id: int,

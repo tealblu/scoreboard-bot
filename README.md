@@ -4,6 +4,9 @@
 
 **trivial** is a Discord bot that automatically tracks game scores from chat
 messages. When a user posts their daily score, trivial remembers the score. The `!scores` command can be used to display scores that trivial remembered.
+Each day the bot can also post a reminder in the score channel: a list of the
+supported games, yesterday's scoreboard, and every player who played yesterday
+with their current streak of consecutive playing days.
 
 # How to set up
 
@@ -67,7 +70,7 @@ Make sure `.env` exists with at least `TOKEN` and `PREFIX`.
 | `!/dailyreminder disable` | Disable the daily games reminder (admins only) |
 | `!/dailyreminder time 09:00` | Set the reminder time, 24-hour, in the bot's timezone (admins only) |
 | `!/dailyreminder show` | Show the current reminder settings (admins only) |
-| `!/dailyreminder test` | Preview the daily reminder (plus yesterday's scoreboard) in this channel (admins only) |
+| `!/dailyreminder test` | Preview the daily reminder (plus yesterday's scoreboard and players) in this channel (admins only) |
 | `!/sync global` | Re-sync the slash command tree with Discord (bot owner only) |
 | `!/unsync global` | Remove the bot's slash commands (bot owner only) |
 
