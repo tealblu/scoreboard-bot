@@ -303,7 +303,7 @@ def build_leaderboard_embed(
         window_label = "all time"
 
     label = game.title() if game else "Leaderboard"
-    title = title or f"{_CROWN} {label} — {window_label}"
+    title = title or f"{_TROPHY} {label} — {window_label}"
 
     if not records:
         return _empty_embed(title, color)
@@ -311,15 +311,25 @@ def build_leaderboard_embed(
     embed = discord.Embed(title=title, color=color)
     grouped = _group_by_game(records)
 
+    # The `top` metric keeps the original record, so each row's day is when
+    # that best score was set — show it. The other metrics aggregate across
+    # days (mean, wins, plays), so a per-row date would be meaningless.
+    show_day = metric == "top"
+
     for game_name in sorted(grouped):
         aggregated = _aggregate_per_player(grouped[game_name], orders, metric)
         top = _ranked(aggregated, rank_orders, name)[:3]
-        lines = [
-            f"{_CROWN} **{name(r)}** — **{format_score(r.score)}**"
-            if i == 1
-            else f"{i}. **{name(r)}** — **{format_score(r.score)}**"
-            for i, r in enumerate(top, 1)
-        ]
+        lines = []
+        for i, r in enumerate(top, 1):
+            date = f" · {r.day}" if show_day else ""
+            if i == 1:
+                lines.append(
+                    f"{_CROWN} **{name(r)}** — **{format_score(r.score)}**{date}"
+                )
+            else:
+                lines.append(
+                    f"{i}. **{name(r)}** — **{format_score(r.score)}**{date}"
+                )
         embed.add_field(name=game_name.title(), value="\n".join(lines), inline=True)
 
     embed.set_footer(

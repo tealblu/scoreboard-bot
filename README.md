@@ -62,7 +62,7 @@ Make sure `.env` exists with at least `TOKEN` and `PREFIX`.
 | `!/scores wordle 2026-09-17` | Wordle scores for a specific date (available to everyone) |
 | `!/leaderboard` | Top 3 players for each game by average score, all time (available to everyone) |
 | `!/leaderboard wordle` | Top 3 Wordle players by average score, all time (available to everyone) |
-| `!/leaderboard wordle top` | Top 3 Wordle players by best single score (available to everyone) |
+| `!/leaderboard wordle top` | Top 3 Wordle players by best single score, with the date of each best score (available to everyone) |
 | `!/leaderboard wordle wins` | Top 3 Wordle players by number of first-place wins (available to everyone) |
 | `!/leaderboard wordle count` | Top 3 Wordle players by number of games played (available to everyone) |
 | `!/leaderboard wordle 2026-09-17` | Top 3 Wordle players for a specific date (available to everyone) |
