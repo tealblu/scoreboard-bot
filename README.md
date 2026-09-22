@@ -57,6 +57,7 @@ Make sure `.env` exists with at least `TOKEN` and `PREFIX`.
 | `!/scores` | Today's scores across all games (available to everyone) |
 | `!/scores wordle` | Today's Wordle scores (available to everyone) |
 | `!/scores wordle 2026-09-17` | Wordle scores for a specific date (available to everyone) |
+| `!/games` | List every supported game with a link to play (available to everyone) |
 | `!/scorechannel set #channel` | Set the channel trivial monitors for scores (admins only) |
 | `!/scorechannel remove` | Stop monitoring scores in this server (admins only) |
 | `!/scorechannel show` | Show the currently monitored score channel (admins only) |
@@ -120,7 +121,7 @@ python local_tester.py -f inputs.txt --db out/test.db  # Custom DB path
 ```
 
 ## AI Disclosure
-AI was used to generate the initial framework for this project, as well as assisting in some of the documentation. Only open-weight models were used for AI-generated content, run through open-source tooling.
+AI was used to generate the initial framework for this project, as well as some of the documentation. Only open-weight models were used for AI-generated content, run through open-source tooling.
 
 ## License
 

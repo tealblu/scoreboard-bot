@@ -8,7 +8,12 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from parsers import ScoreParser, select_parser, build_scoreboard_embed
+from parsers import (
+    ScoreParser,
+    build_game_link_lines,
+    build_scoreboard_embed,
+    select_parser,
+)
 from parsers.registry import discover_parsers
 from timeutil import day_string, today_str
 
@@ -167,6 +172,25 @@ class Scoreboard(commands.Cog):
             day=day,
             sort_orders=sort_orders,
             guild=context.guild,
+        )
+        await context.send(embed=embed, silent=True)
+
+    @commands.hybrid_command(
+        name="games",
+        description="List every supported game with a link to play.",
+    )
+    async def games(self, context: Context) -> None:
+        """
+        List the supported games and links to their websites.
+
+        Usage:
+            !games
+        """
+        lines = build_game_link_lines(self.parsers)
+        embed = discord.Embed(
+            title="🎮 Supported Games",
+            description="\n".join(lines),
+            color=0xBEBEFE,
         )
         await context.send(embed=embed, silent=True)
 

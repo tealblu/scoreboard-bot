@@ -7,6 +7,7 @@ import logging
 import pkgutil
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import urlparse
 
 from .base import ScoreParser
 
@@ -53,3 +54,23 @@ def _parser_classes() -> tuple[type[ScoreParser], ...]:
 def discover_parsers() -> list[ScoreParser]:
     """Return a fresh instance of every concrete ``ScoreParser`` subclass."""
     return [cls() for cls in _parser_classes()]
+
+
+def build_game_link_lines(
+    parsers: list[ScoreParser] | None = None,
+) -> list[str]:
+    """Build the user-facing list of supported games and their links.
+    """
+    games = [parser for parser in parsers or discover_parsers() if not parser.hidden]
+    games.sort(key=lambda parser: parser.game)
+
+    lines: list[str] = []
+    for parser in games:
+        name = parser.game.title()
+        if parser.game_url:
+            host = urlparse(parser.game_url).netloc or parser.game_url
+            lines.append(f"• **{name}** — [{host}]({parser.game_url})")
+        else:
+            logger.warning("Parser %s has no game_url", type(parser).__name__)
+            lines.append(f"• **{name}**")
+    return lines

@@ -5,13 +5,12 @@ from __future__ import annotations
 import logging
 import re
 from typing import TYPE_CHECKING
-from urllib.parse import urlparse
 
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
-from parsers import build_scoreboard_embed
+from parsers import build_game_link_lines, build_scoreboard_embed
 from parsers.registry import discover_parsers
 from timeutil import bot_tz, now, now_label, yesterday_str
 
@@ -109,18 +108,7 @@ class DailyReminder(commands.Cog, name="dailyreminder"):
 
     def build_reminder_embed(self, channel: discord.abc.GuildChannel) -> discord.Embed:
         """List every supported game (with its link) in a Discord embed."""
-        games = [parser for parser in self.parsers if not parser.hidden]
-        games.sort(key=lambda parser: parser.game)
-
-        lines: list[str] = []
-        for parser in games:
-            name = parser.game.title()
-            if parser.game_url:
-                host = urlparse(parser.game_url).netloc or parser.game_url
-                lines.append(f"• **{name}** — [{host}]({parser.game_url})")
-            else:
-                logger.warning("Parser %s has no game_url", type(parser).__name__)
-                lines.append(f"• **{name}**")
+        lines = build_game_link_lines(self.parsers)
 
         embed = discord.Embed(
             title="🎮 Daily Games",
