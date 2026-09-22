@@ -1,18 +1,5 @@
 #!/usr/bin/env python3
-"""
-Lightweight local testing framework for scoreboard parsers.
-
-Usage:
-    Interactive:  python local_tester.py
-    Single input: python local_tester.py -p "Wordle 1,234 4/6"
-    File mode:    python local_tester.py -f inputs.txt
-    File (split): python local_tester.py -f multi.txt -d "---"
-
-Flags:
-    --list        Show discovered parsers and exit
-    --verbose     Show dispatch decisions per parser
-    --db PATH     Where to record scores (default: ./local_test.db)
-"""
+"""Lightweight local testing framework for scoreboard parsers."""
 
 from __future__ import annotations
 
@@ -36,7 +23,11 @@ from database import DatabaseManager  # noqa: E402
 from parsers.base import ScoreParser  # noqa: E402
 from parsers.dispatch import select_parser  # noqa: E402
 from parsers.registry import discover_parsers  # noqa: E402
-from parsers.scoring import build_scoreboard_embed  # noqa: E402
+from parsers.scoring import (  # noqa: E402
+    build_leaderboard_embed,
+    build_scoreboard_embed,
+    resolve_metric,
+)
 from timeutil import today_str  # noqa: E402
 
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
@@ -53,12 +44,7 @@ _AUTHOR_PREFIX = re.compile(
 
 
 def split_author(text: str) -> tuple[MockUser | None, str]:
-    """If *text* starts with an author prefix, return (MockUser, payload).
-
-    ``@Alice:1001`` simulates a user whose display name is "Alice"; the
-    optional ``@Nick~Name:1001`` form sets a server nickname ("Nick") and
-    a separate global name ("Name"), mirroring discord.py's ``Member``.
-    """
+    """If *text* starts with an author prefix, return (MockUser, payload)."""
     m = _AUTHOR_PREFIX.match(text)
     if m:
         nick = m.group("nick")
@@ -405,11 +391,39 @@ def build_cli() -> argparse.ArgumentParser:
              "name to filter, or omit for all games.",
     )
     ap.add_argument(
+        "--leaderboard",
+        nargs="?",
+        const="",
+        default=None,
+        metavar="GAME",
+        dest="leaderboard_game",
+        help="Show the top-3-per-game leaderboard (same embed as !leaderboard). "
+             "Pass a game name to filter, or omit for all games.",
+    )
+    ap.add_argument(
+        "--metric",
+        type=str,
+        metavar="average|top|wins|count",
+        default="average",
+        help="How to rank players: `average` (mean score, default), `top` "
+             "(best single score), `wins` (first-place finishes), or `count` "
+             "(games played).",
+    )
+    ap.add_argument(
         "--day",
         type=str,
         metavar="YYYY-MM-DD",
         default=None,
-        help="Filter scores by date (used with --scores; default: today).",
+        help="Start date (or single date) used with --scores / --leaderboard "
+             "(default for --scores: today; for --leaderboard: all time).",
+    )
+    ap.add_argument(
+        "--end",
+        type=str,
+        metavar="YYYY-MM-DD",
+        default=None,
+        help="End date forming an inclusive range with --day (used with "
+             "--leaderboard most naturally; default: single date / all time).",
     )
     return ap
 
@@ -427,6 +441,27 @@ async def amain(args: argparse.Namespace, parsers: list[ScoreParser]) -> None:
             sort_orders = {p.game: p.score_sort for p in parsers}
             embed = build_scoreboard_embed(
                 records, game=game, day=day, sort_orders=sort_orders
+            )
+            print(render_embed(embed))
+            return
+
+        # ── Top-3-per-game leaderboard mode (mirrors !leaderboard) ─────
+        if args.leaderboard_game is not None:
+            game = args.leaderboard_game or None  # "" → None (all games)
+            day = args.day or None  # None → all time
+            end = args.end or None
+            metric = resolve_metric(args.metric) or "average"
+            records = await db.get_scores(
+                guild_id=3000, game=game, day=day, end_day=end
+            )
+            sort_orders = {p.game: p.score_sort for p in parsers}
+            embed = build_leaderboard_embed(
+                records,
+                game=game,
+                day=day,
+                end_day=end,
+                sort_orders=sort_orders,
+                metric=metric,
             )
             print(render_embed(embed))
             return

@@ -60,6 +60,13 @@ Make sure `.env` exists with at least `TOKEN` and `PREFIX`.
 | `!/scores` | Today's scores across all games (available to everyone) |
 | `!/scores wordle` | Today's Wordle scores (available to everyone) |
 | `!/scores wordle 2026-09-17` | Wordle scores for a specific date (available to everyone) |
+| `!/leaderboard` | Top 3 players for each game by average score, all time (available to everyone) |
+| `!/leaderboard wordle` | Top 3 Wordle players by average score, all time (available to everyone) |
+| `!/leaderboard wordle top` | Top 3 Wordle players by best single score (available to everyone) |
+| `!/leaderboard wordle wins` | Top 3 Wordle players by number of first-place wins (available to everyone) |
+| `!/leaderboard wordle count` | Top 3 Wordle players by number of games played (available to everyone) |
+| `!/leaderboard wordle 2026-09-17` | Top 3 Wordle players for a specific date (available to everyone) |
+| `!/leaderboard 2026-09-01 2026-09-21` | Top 3 players per game across a date range, e.g. a week (available to everyone) |
 | `!/games` | List every supported game with a link to play (available to everyone) |
 | `!/scorechannel set #channel` | Set the channel trivial monitors for scores (admins only) |
 | `!/scorechannel remove` | Stop monitoring scores in this server (admins only) |
@@ -119,6 +126,10 @@ Other flags:
 ```
 python local_tester.py --list                          # Show discovered parsers
 python local_tester.py --scores wordle --day 2026-09-17
+python local_tester.py --leaderboard wordle            # Top-3-per-game leaderboard (all time)
+python local_tester.py --leaderboard wordle --metric top  # Rank by best single score
+python local_tester.py --leaderboard wordle --metric wins # Rank by first-place wins
+python local_tester.py --leaderboard --day 2026-09-01 --end 2026-09-21
 python local_tester.py -f inputs.txt --verbose
 python local_tester.py -f inputs.txt --db out/test.db  # Custom DB path
 ```

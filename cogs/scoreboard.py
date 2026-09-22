@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 
 import discord
@@ -9,9 +9,13 @@ from discord import app_commands
 from discord.ext import commands
 
 from parsers import (
+    DEFAULT_METRIC,
+    METRIC_ALIASES,
     ScoreParser,
     build_game_link_lines,
+    build_leaderboard_embed,
     build_scoreboard_embed,
+    resolve_metric,
     select_parser,
 )
 from parsers.registry import discover_parsers
@@ -22,6 +26,84 @@ if TYPE_CHECKING:
     from discord.ext.commands import Context
 
 logger = logging.getLogger("trivial")
+
+
+def _resolve_leaderboard_metric(
+    game: str | None,
+    day: str | None,
+    end: str | None,
+    metric: str | None,
+) -> tuple[str, str | None, str | None, str | None, str | None]:
+    """Resolve which aggregation metric /leaderboard should use.
+    """
+    metric_key = resolve_metric(metric)
+    if metric is not None and metric_key is None:
+        first, *rest = METRIC_ALIASES  # dicts keep insertion order
+        names = ", ".join([f"`{first}` (default)", *(f"`{name}`" for name in rest)])
+        return DEFAULT_METRIC, game, day, end, (
+            f"`{metric}` is not a valid metric — use {names}."
+        )
+
+    # Set explicitly to a metric outside the default family: trust it untouched.
+    if (
+        metric is not None
+        and metric_key is not None
+        and metric.strip().lower() not in METRIC_ALIASES[DEFAULT_METRIC]
+    ):
+        return metric_key, game, day, end, None
+
+    # metric untouched (default): pick up a metric keyword from a positional slot.
+    slots = [game, day, end]
+    for index, value in enumerate(slots):
+        if value is not None and resolve_metric(value) is not None:
+            metric_key = resolve_metric(value)
+            slots[index] = None
+            break
+    return metric_key or DEFAULT_METRIC, slots[0], slots[1], slots[2], None
+
+
+def _resolve_leaderboard_dates(
+    day: str | None,
+    end: str | None,
+) -> tuple[str | None, str | None, str | None]:
+    """Normalize the ``day``/``end`` params for /leaderboard.
+    """
+    def parse(value: str) -> str | None:
+        try:
+            return date.fromisoformat(value.strip()).isoformat()
+        except ValueError:
+            return None
+
+    if day is None and end is None:
+        return None, None, None
+
+    if end is None:
+        parsed = parse(day)
+        return (
+            (parsed, None, None)
+            if parsed
+            else (None, None, f"`{day}` is not a valid date — use `YYYY-MM-DD`, e.g. `2026-09-17`.")
+        )
+
+    if day is None:
+        parsed = parse(end)
+        return (
+            (parsed, None, None)
+            if parsed
+            else (None, None, f"`{end}` is not a valid date — use `YYYY-MM-DD`, e.g. `2026-09-17`.")
+        )
+
+    start, stop = parse(day), parse(end)
+    if start is None or stop is None:
+        bad = day if start is None else end
+        return (
+            None,
+            None,
+            f"`{bad}` is not a valid date — use `YYYY-MM-DD`, e.g. `2026-09-17`.",
+        )
+    if stop < start:
+        return None, None, "The end date cannot be before the start date."
+    return start, stop, None
 
 
 class Scoreboard(commands.Cog):
@@ -172,6 +254,65 @@ class Scoreboard(commands.Cog):
             day=day,
             sort_orders=sort_orders,
             guild=context.guild,
+        )
+        await context.send(embed=embed, silent=True)
+
+    @commands.hybrid_command(
+        name="leaderboard",
+        description="Show the top 3 players for each game.",
+    )
+    @commands.guild_only()
+    @app_commands.describe(
+        game="Optional game identifier to filter by, e.g. wordle.",
+        day="Optional date (YYYY-MM-DD) to show, or the range start with `end`.",
+        end="Optional end date (YYYY-MM-DD); together with `day` forms a range.",
+        metric="Rank by `average` (default), `top` best score, `wins`, or `count` plays.",
+    )
+    async def leaderboard(
+        self,
+        context: Context,
+        game: str | None = None,
+        day: str | None = None,
+        end: str | None = None,
+        metric: str = "average",
+    ) -> None:
+        """
+        Show the top 3 players for each game.
+        """
+        # Ack immediately — the same reasons as /scores: a query over a large
+        # (e.g. freshly backfilled) table can outlast Discord's 3-second
+        # interaction window.
+        await context.defer()
+
+        metric_key, game, day, end, metric_error = _resolve_leaderboard_metric(
+            game, day, end, metric
+        )
+        if metric_error is not None:
+            embed = discord.Embed(description=metric_error, color=0xE02B2B)
+            await context.send(embed=embed, silent=True)
+            return
+
+        start, stop, error = _resolve_leaderboard_dates(day, end)
+        if error is not None:
+            embed = discord.Embed(description=error, color=0xE02B2B)
+            await context.send(embed=embed, silent=True)
+            return
+
+        records = await context.bot.database.get_scores(
+            guild_id=context.guild.id,
+            game=game,
+            day=start,
+            end_day=stop,
+        )
+        sort_orders = {p.game: p.score_sort for p in self.parsers}
+        embed = build_leaderboard_embed(
+            records,
+            game=game,
+            day=start,
+            end_day=stop,
+            sort_orders=sort_orders,
+            guild=context.guild,
+            metric=metric_key,
         )
         await context.send(embed=embed, silent=True)
 
