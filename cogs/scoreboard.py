@@ -488,7 +488,7 @@ class Scoreboard(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
-        if message.author.bot or not message.guild:
+        if not message.guild:
             return
 
         tracked_channel = await self._get_tracked_channel(message.guild.id)
@@ -497,6 +497,10 @@ class Scoreboard(commands.Cog):
 
         parser = select_parser(self.parsers, message)
         if parser is None:
+            return
+
+        # the wordle bot posts the grid for the player it replies to
+        if message.author.bot and not parser.reads_bot_messages:
             return
 
         try:
