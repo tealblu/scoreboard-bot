@@ -504,6 +504,8 @@ class Scoreboard(commands.Cog):
             return
 
         try:
+            if message.author.bot:
+                await self._resolve_reply(message)
             score_response = parser.parse(message)
             # Persist before posting so a daily result is never lost if the
             # embed fails.
@@ -513,7 +515,7 @@ class Scoreboard(commands.Cog):
             logger.info(
                 "Recorded %s score for %s in #%s using %s",
                 parser.game,
-                message.author,
+                score_response.username,
                 message.channel,
                 type(parser).__name__,
             )
@@ -522,6 +524,28 @@ class Scoreboard(commands.Cog):
                 "Parser %s failed on message %s",
                 type(parser).__name__,
                 message.id,
+            )
+
+    async def _resolve_reply(self, message: discord.Message) -> None:
+        """Look up a reply target the gateway event left unresolved.
+
+        The wordle bot answers the player with a reply, so its author has to
+        be fetched to know who the score belongs to.
+        """
+        reference = message.reference
+        if reference is None or reference.resolved is not None:
+            return
+        if reference.message_id is None:
+            return
+        try:
+            message.reference.resolved = await message.channel.fetch_message(
+                reference.message_id
+            )
+        except discord.HTTPException:
+            logger.info(
+                "Could not resolve reply %s in %s",
+                reference.message_id,
+                message.channel,
             )
 
 

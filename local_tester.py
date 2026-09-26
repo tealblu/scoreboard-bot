@@ -52,6 +52,13 @@ _REPLY_PREFIX = re.compile(
     r"^>\s*@(?P<nick>[^:~!]+)(?:~(?P<name>[^:!]+))?:(?P<uid>\d+)\s*$"
 )
 
+# A leading "/share @Alice:1001" line means the message is a slash command
+# response for that user, the way the wordle bot answers /share.
+_SLASH_PREFIX = re.compile(
+    r"^/(?P<command>[\w-]+)\s+@(?P<nick>[^:~!]+)(?:~(?P<name>[^:!]+))?(?P<bot>!)?"
+    r":(?P<uid>\d+)\s*$"
+)
+
 
 def split_author(text: str) -> tuple[MockUser | None, str]:
     """If *text* starts with an author prefix, return (MockUser, payload)."""
@@ -71,17 +78,32 @@ def split_author(text: str) -> tuple[MockUser | None, str]:
     return None, text
 
 
-def split_reply(text: str) -> tuple[MockUser | None, str]:
-    """Strip a leading "> @Name:uid" line, returning (replied-to user, rest)."""
+def _split_header(text: str, pattern: re.Pattern[str]) -> tuple[MockUser | None, str]:
+    """Strip a leading header line naming a user, returning (user, rest)."""
     head, sep, rest = text.partition("\n")
-    m = _REPLY_PREFIX.match(head.strip())
+    m = pattern.match(head.strip())
     if not (m and sep):
         return None, text
     nick = m.group("nick")
     return (
-        MockUser(name=m.group("name") or nick, uid=int(m.group("uid")), nick=nick),
+        MockUser(
+            name=m.group("name") or nick,
+            uid=int(m.group("uid")),
+            nick=nick,
+            bot=bool(m.groupdict().get("bot")),
+        ),
         rest,
     )
+
+
+def split_reply(text: str) -> tuple[MockUser | None, str]:
+    """Strip a leading "> @Name:uid" line, returning (replied-to user, rest)."""
+    return _split_header(text, _REPLY_PREFIX)
+
+
+def split_slash(text: str) -> tuple[MockUser | None, str]:
+    """Strip a leading "/command @Name:uid" line, returning (invoker, rest)."""
+    return _split_header(text, _SLASH_PREFIX)
 
 
 # Mock Discord objects — lightweight stand-ins so parsers never need the bot
@@ -149,6 +171,16 @@ class MockReference:
         self.message_id = resolved.id if resolved is not None else None
 
 
+class MockInteractionMetadata:
+    """Stand-in for discord.MessageInteractionMetadata."""
+
+    def __init__(self, user: MockUser) -> None:
+        self.user = user
+        self.type = 2  # application command
+        self.original_response_message_id: int | None = None
+        self.interacted_message_id: int | None = None
+
+
 class MockMessage:
     """Stand-in for discord.Message."""
 
@@ -160,6 +192,7 @@ class MockMessage:
         guild: MockGuild | None = None,
         mid: int = 9999,
         reference: MockReference | None = None,
+        interaction_metadata: MockInteractionMetadata | None = None,
     ) -> None:
         self.content = content
         self.author = author or MockUser()
@@ -174,6 +207,7 @@ class MockMessage:
         self.embeds: list[discord.Embed] = []
         self.reactions: list[object] = []
         self.reference = reference
+        self.interaction_metadata = interaction_metadata
 
 
 # Embed → terminal renderer
@@ -253,16 +287,20 @@ async def run_input(
     verbose: bool = False,
 ) -> None:
     """Feed *text* through the parsing pipeline and print what trivial would do."""
-    replied_to, payload = split_reply(text)
+    invoker, payload = split_slash(text)
+    replied_to, payload = split_reply(payload)
     author, payload = split_author(payload)
     msg = MockMessage(content=payload, author=author)
     if replied_to is not None:
-        # a reply means a bot is speaking, so the sender is a bot
-        msg.author.bot = True
         msg.reference = MockReference(MockMessage(author=replied_to, guild=msg.guild))
-    # Register both users in the guild's member cache so nickname
+    if invoker is not None:
+        msg.interaction_metadata = MockInteractionMetadata(invoker)
+    if invoker is not None or replied_to is not None:
+        # a bot is speaking, so the sender is a bot
+        msg.author.bot = True
+    # Register every simulated user in the guild's member cache so nickname
     # resolution via guild.get_member works exactly like production.
-    for user in (author, replied_to):
+    for user in (author, replied_to, invoker):
         if user is not None:
             msg.guild.members[user.id] = user
 

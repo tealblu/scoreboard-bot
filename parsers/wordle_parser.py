@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 import re
 
 import discord
 
 from .base import ScoreParser, ScoreResponse, member_display_name
+
+logger = logging.getLogger("trivial")
 
 
 class WordleScoreParser(ScoreParser):
@@ -20,7 +23,8 @@ class WordleScoreParser(ScoreParser):
         🟩🟩⬛⬛🟨
         ⬜⬜⬜⬜⬜
 
-    sent by the wordle bot, where the player is who it replies to
+    sent by the wordle bot for the player, either as a reply to their
+    message or as the response to their /share
     """
 
     game = "wordle"
@@ -44,7 +48,14 @@ class WordleScoreParser(ScoreParser):
         if not self._rows(message.content):
             return False
         # a bot post needs a player to credit
-        return self._player(message) is not None
+        if self._player(message) is None:
+            logger.info(
+                "Wordle share from %s in %s has no player to credit",
+                message.author,
+                message.channel,
+            )
+            return False
+        return True
 
     def parse(self, message: discord.Message) -> ScoreResponse:
         header = self._header_re.search(message.content)
@@ -78,13 +89,18 @@ class WordleScoreParser(ScoreParser):
         return self._row_re.findall(content)
 
     def _player(self, message: discord.Message) -> discord.User | None:
-        """Who the score belongs to: the sender, or who the bot replied to."""
+        """Who the score belongs to: the sender, or whoever the bot posted for."""
         if not message.author.bot:
             return message.author
-        # history has no referenced message so backfill skips bot posts
+        # a text reply names the player
         reference = message.reference
         replied_to = reference.resolved if reference is not None else None
         author = replied_to.author if replied_to is not None else None
-        if author is None or author.bot:
-            return None
-        return author
+        if author is not None and not author.bot:
+            return author
+        # a /share response names whoever ran the command
+        metadata = message.interaction_metadata
+        invoker = metadata.user if metadata is not None else None
+        if invoker is not None and not invoker.bot:
+            return invoker
+        return None
