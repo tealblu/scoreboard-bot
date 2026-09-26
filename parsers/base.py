@@ -14,22 +14,16 @@ if TYPE_CHECKING:
     from database import DatabaseManager
 
 
-def member_display_name(
-    user: discord.User, guild: discord.Guild | None = None
-) -> str:
-    """Return a user's display name, preferring the server nickname."""
-    # A Member exposes the per-server nickname; a plain User does not, so
-    # fall back to the cached member to pick up nicknames like production does.
-    if not isinstance(user, discord.Member) and guild is not None:
-        member = guild.get_member(user.id)
-        if member is not None:
-            user = member
-    return user.display_name or user.name
-
-
 def message_author_display_name(message: discord.Message) -> str:
     """Return the author's display name, preferring the server nickname."""
-    return member_display_name(message.author, message.guild)
+    author = message.author
+    # A Member exposes the per-server nickname; a plain User does not, so
+    # fall back to the cached member to pick up nicknames like production does.
+    if not isinstance(author, discord.Member) and message.guild is not None:
+        member = message.guild.get_member(author.id)
+        if member is not None:
+            author = member
+    return author.display_name or author.name
 
 
 @dataclass
@@ -70,9 +64,6 @@ class ScoreParser(ABC):
     # Hidden parsers are discovered but excluded from user-facing listings
     # (e.g. the rotating presence and the daily reminder).
     hidden: bool = False
-    # Bot messages are ignored unless a parser opts in — the wordle bot
-    # posts the grid for the player it replies to.
-    reads_bot_messages: bool = False
 
     @abstractmethod
     def can_parse(self, message: discord.Message) -> bool:

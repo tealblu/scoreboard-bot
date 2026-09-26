@@ -90,11 +90,6 @@ Every command above works both as a slash command (`/scores`) and as a prefix co
 
 "Parsers" are used to extract the game's score from a message. Parsers are auto-discovered from the `parsers/` directory. Adding support for a new game is as simple as dropping in a new file that subclasses `ScoreParser`.
 
-Bot messages are ignored by default. A parser that reads a bot's posts for the
-player behind them (like Wordle, which answers `/share`) sets
-`reads_bot_messages = True` and takes that player from
-`message.reference.resolved.author` or `message.interaction_metadata.user`.
-
 ## Local testing
 
 You can exercise the full parsing and score-recording pipeline without
@@ -124,21 +119,6 @@ name (the bot prefers the nickname everywhere — leaderboards, embeds):
 ```
 @Captain:1001 :: Wordle 1,234 4/6                    # nickname == global name
 @Captain~Alice:1001 :: Wordle 1,234 4/6              # nickname "Captain", global name "Alice"
-```
-
-To simulate a message posted by a bot, mark the sender with a `!` and say who
-it is posting for. A `/share @Name:userid` line means a slash command response
-(the way the wordle bot answers `/share`), a `> @Name:userid` line means a
-reply to that user's message:
-
-```
-/share @Alice:1001
-@Wordle!:9001 :: Wordle 1,234 4/6
-⬛⬛⬛⬛🟩
-⬛🟩⬛⬛⬛
-🟩🟩⬛⬛🟨
-🟩🟩⬛⬛🟨
-🟩🟩⬛⬛🟨
 ```
 
 Other flags:

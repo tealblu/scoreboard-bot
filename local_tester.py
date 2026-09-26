@@ -37,26 +37,9 @@ logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
 #
 # To simulate a server nickname that differs from the user's global name:
 #   @Nickname~Global Name:1001 :: Wordle 1,234 4/6
-#
-# A "!" after the name marks the author as a bot:
-#   @Wordle!:9001 :: Wordle 1,234 4/6
 _AUTHOR_PREFIX = re.compile(
-    r"^@(?P<nick>[^:~!]+)(?:~(?P<name>[^:!]+))?(?P<bot>!)?:(?P<uid>\d+)"
-    r"\s*::\s*(?P<content>.*)$",
+    r"^@(?P<nick>[^:~]+)(?:~(?P<name>[^:]+))?:(?P<uid>\d+)\s*::\s*(?P<content>.*)$",
     re.DOTALL,
-)
-
-# A leading "> @Alice:1001" line means the message replies to that user's
-# message, so the sender becomes a bot (e.g. the wordle bot's share).
-_REPLY_PREFIX = re.compile(
-    r"^>\s*@(?P<nick>[^:~!]+)(?:~(?P<name>[^:!]+))?:(?P<uid>\d+)\s*$"
-)
-
-# A leading "/share @Alice:1001" line means the message is a slash command
-# response for that user, the way the wordle bot answers /share.
-_SLASH_PREFIX = re.compile(
-    r"^/(?P<command>[\w-]+)\s+@(?P<nick>[^:~!]+)(?:~(?P<name>[^:!]+))?(?P<bot>!)?"
-    r":(?P<uid>\d+)\s*$"
 )
 
 
@@ -67,44 +50,10 @@ def split_author(text: str) -> tuple[MockUser | None, str]:
         nick = m.group("nick")
         name = m.group("name") or nick
         return (
-            MockUser(
-                name=name,
-                uid=int(m.group("uid")),
-                nick=nick,
-                bot=bool(m.group("bot")),
-            ),
+            MockUser(name=name, uid=int(m.group("uid")), nick=nick),
             m.group("content"),
         )
     return None, text
-
-
-def _split_header(text: str, pattern: re.Pattern[str]) -> tuple[MockUser | None, str]:
-    """Strip a leading header line naming a user, returning (user, rest)."""
-    head, sep, rest = text.partition("\n")
-    m = pattern.match(head.strip())
-    if not (m and sep):
-        return None, text
-    nick = m.group("nick")
-    return (
-        MockUser(
-            name=m.group("name") or nick,
-            uid=int(m.group("uid")),
-            nick=nick,
-            bot=bool(m.groupdict().get("bot")),
-        ),
-        rest,
-    )
-
-
-def split_reply(text: str) -> tuple[MockUser | None, str]:
-    """Strip a leading "> @Name:uid" line, returning (replied-to user, rest)."""
-    return _split_header(text, _REPLY_PREFIX)
-
-
-def split_slash(text: str) -> tuple[MockUser | None, str]:
-    """Strip a leading "/command @Name:uid" line, returning (invoker, rest)."""
-    return _split_header(text, _SLASH_PREFIX)
-
 
 # Mock Discord objects — lightweight stand-ins so parsers never need the bot
 
@@ -117,14 +66,13 @@ class MockUser:
         name: str = "TestUser",
         uid: int = 1000,
         nick: str | None = None,
-        bot: bool = False,
     ) -> None:
         self.id = uid
         self.name = name
         self.nick = nick
         self.display_name = nick or name
         self.discriminator = "0000"
-        self.bot = bot
+        self.bot = False
         self.mention = f"<@{uid}>"
 
     def __str__(self) -> str:
@@ -163,24 +111,6 @@ class MockGuild:
         return self.name
 
 
-class MockReference:
-    """Stand-in for discord.MessageReference."""
-
-    def __init__(self, resolved: MockMessage | None = None) -> None:
-        self.resolved = resolved
-        self.message_id = resolved.id if resolved is not None else None
-
-
-class MockInteractionMetadata:
-    """Stand-in for discord.MessageInteractionMetadata."""
-
-    def __init__(self, user: MockUser) -> None:
-        self.user = user
-        self.type = 2  # application command
-        self.original_response_message_id: int | None = None
-        self.interacted_message_id: int | None = None
-
-
 class MockMessage:
     """Stand-in for discord.Message."""
 
@@ -191,8 +121,6 @@ class MockMessage:
         channel: MockChannel | None = None,
         guild: MockGuild | None = None,
         mid: int = 9999,
-        reference: MockReference | None = None,
-        interaction_metadata: MockInteractionMetadata | None = None,
     ) -> None:
         self.content = content
         self.author = author or MockUser()
@@ -206,8 +134,7 @@ class MockMessage:
         self.attachments: list[object] = []
         self.embeds: list[discord.Embed] = []
         self.reactions: list[object] = []
-        self.reference = reference
-        self.interaction_metadata = interaction_metadata
+        self.reference: object | None = None
 
 
 # Embed → terminal renderer
@@ -287,22 +214,12 @@ async def run_input(
     verbose: bool = False,
 ) -> None:
     """Feed *text* through the parsing pipeline and print what trivial would do."""
-    invoker, payload = split_slash(text)
-    replied_to, payload = split_reply(payload)
-    author, payload = split_author(payload)
+    author, payload = split_author(text)
     msg = MockMessage(content=payload, author=author)
-    if replied_to is not None:
-        msg.reference = MockReference(MockMessage(author=replied_to, guild=msg.guild))
-    if invoker is not None:
-        msg.interaction_metadata = MockInteractionMetadata(invoker)
-    if invoker is not None or replied_to is not None:
-        # a bot is speaking, so the sender is a bot
-        msg.author.bot = True
-    # Register every simulated user in the guild's member cache so nickname
+    # Register the author in the guild's member cache so nickname
     # resolution via guild.get_member works exactly like production.
-    for user in (author, replied_to, invoker):
-        if user is not None:
-            msg.guild.members[user.id] = user
+    if author is not None:
+        msg.guild.members[author.id] = author
 
     parser = select_parser(parsers, msg)
     if parser is None:
