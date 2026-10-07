@@ -14,7 +14,6 @@ class CatfishingScoreParser(ScoreParser):
     game = "catfishing"
     score_sort = "desc"  # higher score is better
     game_url = "https://catfishing.net"
-    reset_time_utc = "00:00"  # 00:00 UTC (matches the site's week boundary)
 
     # The share header is its own whole line: "catfishing.net" or "catfishing dot net".
     _header_re = re.compile(

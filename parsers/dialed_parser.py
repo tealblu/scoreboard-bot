@@ -19,7 +19,6 @@ class DialedScoreParser(ScoreParser):
     game = "dialed"
     score_sort = "desc"  # higher score is better
     game_url = "https://dialed.gg/color"
-    reset_time_utc = "00:00"  # 00:00 UTC (unverified)
 
     # The daily share header — everything else dialed posts is ignored.
     _header_re = re.compile(r"Color\s+Daily", re.IGNORECASE)

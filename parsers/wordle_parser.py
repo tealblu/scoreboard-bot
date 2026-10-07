@@ -22,7 +22,6 @@ class WordleScoreParser(ScoreParser):
     game = "wordle"
     score_sort = "asc"  # fewer guesses is better
     game_url = "https://www.nytimes.com/games/wordle/index.html"
-    reset_time_utc = "04:00"  # midnight US Eastern (05:00 UTC during US EST)
 
     # "Wordle 1925 4/6" or "Wordle 1,925 X/6"
     _header_re = re.compile(
