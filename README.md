@@ -90,6 +90,8 @@ Every command above works both as a slash command (`/scores`) and as a prefix co
 
 "Parsers" are used to extract the game's score from a message. Parsers are auto-discovered from the `parsers/` directory. Adding support for a new game is as simple as dropping in a new file that subclasses `ScoreParser`.
 
+Every concrete parser must declare `game`, `game_url` and `reset_time_utc` — the time in UTC (`"HH:MM"`) when the game officially resets and moves to the next day (e.g. `"04:00"` for midnight US Eastern). The reset time decides which calendar day a score is recorded under: shares posted before the reset still count as the previous game day. A parser that forgets `reset_time_utc` (or formats it incorrectly) fails at import and is skipped by discovery with an error in the log.
+
 ## Local testing
 
 You can exercise the full parsing and score-recording pipeline without

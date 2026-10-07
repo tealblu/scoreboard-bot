@@ -443,7 +443,6 @@ class Scoreboard(commands.Cog):
         scanned = 0
         recorded = 0
         games: dict[str, int] = {}
-        now_day = today_str()
         seen: set[tuple[int, str, str]] = set()
 
         async for message in channel.history(**kwargs):
@@ -456,7 +455,9 @@ class Scoreboard(commands.Cog):
                     continue
                 response = parser.parse(message)
                 message_day = day_string(message.created_at)
-                if response.day != message_day and response.day == now_day:
+                # A response whose day is the game's current day was left to
+                # the parser's default, so attribute it to the message's day.
+                if response.day != message_day and response.day == parser.game_day():
                     response.day = message_day
                 key = (message.author.id, parser.game, response.day)
                 if key in seen:

@@ -24,6 +24,7 @@ class MetazooaScoreParser(ScoreParser):
     game = "metazooa"
     score_sort = "asc"  # fewer guesses is better
     game_url = "https://metazooa.com"
+    reset_time_utc = "00:00"  # 00:00 UTC (confirmed via the site's countdown)
 
     # "{emoji} animal #{number} {emoji}" and animal keeps metaflora out
     _header_re = re.compile(

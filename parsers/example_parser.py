@@ -9,6 +9,7 @@ class ExampleScoreParser(ScoreParser):
     """Skeleton parser — copy this file to add a REAL game parser."""
 
     game = "example"
+    reset_time_utc = "00:00"  # TODO: the game's reset time in UTC ("HH:MM")
     hidden = True  # skeleton only: keep out of presence/reminder listings
     # game_url = "https://yourgame.example"  # shown in the daily reminder
 

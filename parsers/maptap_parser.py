@@ -18,6 +18,7 @@ class MapTapScoreParser(ScoreParser):
     game = "maptap"
     score_sort = "desc"  # higher score is better
     game_url = "https://www.maptap.gg"
+    reset_time_utc = "00:00"  # 00:00 UTC (unverified)
 
     # Match individual round results like "93🏆" or "87🎓".
     _round_re = re.compile(r"(\d+)\s*([^\s\d]+)")

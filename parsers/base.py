@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from datetime import datetime, time, timedelta, timezone
 from typing import TYPE_CHECKING, Literal
 
 import discord
@@ -12,6 +14,10 @@ from .common import format_score
 
 if TYPE_CHECKING:
     from database import DatabaseManager
+
+# A daily reset time in UTC, 24-hour "HH:MM" (single-digit hours accepted,
+# e.g. "9:30").
+RESET_TIME_RE = re.compile(r"^([01]?\d|2[0-3]):([0-5]\d)$")
 
 
 def message_author_display_name(message: discord.Message) -> str:
@@ -61,9 +67,48 @@ class ScoreParser(ABC):
     score_sort: Literal["asc", "desc"] = "asc"
     # Link to the game's website, shown in the daily reminder.
     game_url: str = ""
+    # REQUIRED on every concrete parser: the time in UTC when the game
+    # officially resets and moves to the next day, as "HH:MM" (e.g.
+    # "04:00" for midnight US Eastern). Scores posted before the reset
+    # belong to the previous game day.
+    reset_time_utc: str = ""
     # Hidden parsers are discovered but excluded from user-facing listings
     # (e.g. the rotating presence and the daily reminder).
     hidden: bool = False
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        """Reject concrete parsers that don't declare a reset time."""
+        super().__init_subclass__(**kwargs)
+        # Concrete parsers set a `game`; helper/abstract bases don't, so
+        # they inherit the empty default without complaint.
+        if not getattr(cls, "game", ""):
+            return
+        reset = getattr(cls, "reset_time_utc", "")
+        if not isinstance(reset, str) or RESET_TIME_RE.match(reset) is None:
+            raise ValueError(
+                f"{cls.__name__} must set reset_time_utc to the game's daily "
+                f"reset time in UTC as 'HH:MM' (e.g. '00:00'), got {reset!r}."
+            )
+
+    def reset_time(self) -> time:
+        """This game's daily reset moment as a UTC clock time."""
+        hour, _, minute = self.reset_time_utc.partition(":")
+        return time(int(hour), int(minute))
+
+    def game_day(self, at: datetime | None = None) -> str:
+        """The game day (``YYYY-MM-DD``) in effect at *at* — default: now.
+
+        The day rolls over at ``reset_time_utc``, not at midnight UTC, so
+        any moment before the reset still belongs to the previous day.
+        Naive datetimes are treated as UTC.
+        """
+        moment = at if at is not None else datetime.now(timezone.utc)
+        if moment.tzinfo is None:
+            moment = moment.replace(tzinfo=timezone.utc)
+        moment = moment.astimezone(timezone.utc)
+        if moment.time() < self.reset_time():
+            moment -= timedelta(days=1)
+        return moment.strftime("%Y-%m-%d")
 
     @abstractmethod
     def can_parse(self, message: discord.Message) -> bool:
@@ -88,7 +133,8 @@ class ScoreParser(ABC):
         :param message: The message the score was extracted from.
         :param title: Title shown on the response embed, e.g. "Color Daily".
         :param score: The numeric score for this game/author/day.
-        :param day: Optional ``YYYY-MM-DD`` date; ``None`` keeps today's date.
+        :param day: Optional ``YYYY-MM-DD`` date; ``None`` resolves the
+            game's current day from ``reset_time_utc`` (see :meth:`game_day`).
         """
         resp = ScoreResponse(
             title=title,
@@ -96,9 +142,8 @@ class ScoreParser(ABC):
             game=self.game,
             user_id=message.author.id,
             username=message_author_display_name(message),
+            day=day or self.game_day(),
         )
-        if day:
-            resp.day = day
         return resp
 
     def format_response(self, score_response: ScoreResponse) -> discord.Embed:
